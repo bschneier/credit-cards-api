@@ -3,3 +3,6 @@ coverage
 
 # Dependency directory
 node_modules
+
+# logs
+logs
