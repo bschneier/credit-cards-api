@@ -16,7 +16,7 @@
   "scripts": {
     "clean-dist": "rimraf ./dist && mkdir dist",
     "start-dev-server": "npm run -s build && npm run copy-key && node dist/server",
-    "copy-key": "copy C:\\Brian\\Development\\js\\encryption_key.txt C:\\Brian\\Development\\js\\credit-cards-api\\",
+    "copy-key": "copy ..\\encryption_key.txt .\\",
     "prebuild": "npm run clean-dist && npm run lint && nsp check",
     "build": "babel src -D -d dist --presets es2015,es2016",
     "lint": "eslint ./**/*.js --color",
