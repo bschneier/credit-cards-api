@@ -4,5 +4,8 @@ coverage
 # Dependency directory
 node_modules
 
-# logs
+# logs directory
 logs
+
+# build output directory
+dist
