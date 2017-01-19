@@ -17,5 +17,9 @@
   },
   "keyConfig" : {
     "filePath" : "./encryption_key.txt"
+  },
+  "redisConfig" : {
+    "host" : "schnin.biz",
+    "port" : 6379
   }
 }
