@@ -1,8 +1,9 @@
-import router from 'express';
+import { Router as router } from 'express';
 import { userAuthenticatedRoutes, userAdminRoutes } from './users';
 import { authenticationGuard, adminGuard, authenticationRoutes } from './authentication';
 
 let routes = router();
+
 // non authenticated routes
 routes.use('/users/authenticate', authenticationRoutes);
 

@@ -1,4 +1,4 @@
-import router from 'express';
+import { Router as router } from 'express';
 import User from '../models/users';
 import logger from '../logger';
 import bcrypt from 'bcryptjs';

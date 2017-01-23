@@ -48,11 +48,14 @@ mongoose.connect('mongodb://' + dbConfig.username
 
 // configure and start express server
 let app = express();
+app.disable('x-powered-by');
 app.use(bodyParser.json());
+// set secure: true cookie option once SSL is implemented
 app.use(cookieSession({
   name: 'credit-cards-session',
   secret: process.env.COOKIE_SECRET,
-  maxAge: 20 * 60 * 1000
+  maxAge: 20 * 60 * 1000,
+  httpOnly: true
 }));
 // body-parser urlencode?
 app.use('/', routes);
