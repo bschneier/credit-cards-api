@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import express from 'express';
 import bodyParser from 'body-parser';
 import routes from './routes/all';
-import logger from './logger';
+import { apiLogger } from './logging';
 import config from 'config';
 import fs from 'fs';
 import simpleEncryptor from 'simple-encryptor';
@@ -50,7 +50,7 @@ mongoose.connect('mongodb://' + dbConfig.username
 let app = express();
 app.disable('x-powered-by');
 app.use(bodyParser.json());
-// set secure: true cookie option once SSL is implemented
+// set 'secure: true' cookie option once SSL is implemented
 app.use(cookieSession({
   name: 'credit-cards-session',
   secret: process.env.COOKIE_SECRET,
@@ -62,5 +62,5 @@ app.use('/', routes);
 
 let serverPort = config.get('serverConfig.port');
 app.listen(serverPort, () => {
-  logger.info(`Server has started and is listening at port ${serverPort}.`);
+  apiLogger.info(`Server has started and is listening at port ${serverPort}.`);
 });

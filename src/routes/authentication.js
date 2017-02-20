@@ -1,6 +1,6 @@
 import { Router as router } from 'express';
 import User from '../models/users';
-import logger from '../logger';
+import { apiLogger, formatApiLogMessage } from '../logging';
 import bcrypt from 'bcryptjs';
 import redis from 'redis';
 import config from 'config';
@@ -22,20 +22,20 @@ routes.post('', (req, res) => {
   // validate request for expected parameters
   if(!req.body.hasOwnProperty('userName') || !req.body.hasOwnProperty('password')
    || !req.body.hasOwnProperty('rememberMe')) {
-    logger.info('invalid authentication request: ' + JSON.stringify(req.body));
+    apiLogger.info(formatApiLogMessage('invalid authentication request: ' + JSON.stringify(req.body), req));
     res.json({info: 'invalid request', data: {responseCode : AUTH_RESPONSES.INVALID_REQUEST}});
   }
   else {
     User.findOne({ userName : req.body.userName }, '-email', function (err, user) {
       if (err) {
-        logger.error(`Authentication request failed - error finding user '${req.body.userName}': ${err}`);
+        apiLogger.error(formatApiLogMessage(`Authentication request failed - error finding user '${req.body.userName}': ${err}`, req));
         res.json({info: 'error during find user', data: {responseCode : AUTH_RESPONSES.ERROR}, error: err});
       }
 
       if (user) {
         // check if user account is locked
         if(user.lockoutExpiration > new Date()) {
-          logger.info(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`);
+          apiLogger.info(formatApiLogMessage(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
           res.json({info: 'user account is locked out', data: {responseCode : AUTH_RESPONSES.LOCKED_OUT}});
         }
         else {
@@ -48,8 +48,6 @@ routes.post('', (req, res) => {
               expiresIn: 1200
             });
             req.session.token = cookieToken;
-            logger.info(`generated cookie token: ${cookieToken}`);
-            logger.info(`set token in request cookie session: ${req.session.token}`);
 
             user.password = undefined;
             res.json({
@@ -60,7 +58,7 @@ routes.post('', (req, res) => {
             });
           }
           else {
-            logger.info(`Incorrect password for user '${user.userName}'`);
+            apiLogger.info(formatApiLogMessage(`Incorrect password for user '${user.userName}'`, req));
 
             // increment login failures in cache and lock user account if necessary
             redisClient.get('login-failures:' + user._id, (error, failures) => {
@@ -70,10 +68,10 @@ routes.post('', (req, res) => {
                 user.lockoutExpiration = expiration;
                 user.save((err) => {
                   if(err) {
-                    logger.error(`Error setting lockoutExpiration for user '${user.userName}': ${err}`);
+                    apiLogger.error(formatApiLogMessage(`Error setting lockoutExpiration for user '${user.userName}': ${err}`, req));
                   }
                   else {
-                    logger.info(`Set lockoutExpiration for user ${user.userName} to ${expiration}`);
+                    apiLogger.info(formatApiLogMessage(`Set lockoutExpiration for user ${user.userName} to ${expiration}`, req));
                   }
                 });
 
@@ -87,7 +85,7 @@ routes.post('', (req, res) => {
           }
         }
       } else {
-        logger.info(`Login failed - could not find user '${req.body.userName}'`);
+        apiLogger.info(formatApiLogMessage(`Login failed - could not find user '${req.body.userName}'`, req));
         res.json({info: 'login failed', data: {responseCode : AUTH_RESPONSES.LOGIN_FAIL}});
       }
     });
@@ -107,7 +105,7 @@ export function authenticationGuard(req, res, next) {
       next();
     }
     else {
-      logger.info(`Invalid tokens - content does not match`);
+      apiLogger.info(formatApiLogMessage(`Invalid tokens - content does not match`, req));
       return res.status(401).send({
         success: false,
         message: 'Invalid token provided.'
@@ -115,7 +113,7 @@ export function authenticationGuard(req, res, next) {
     }
   }
   catch (err) {
-    logger.info(`Invalid token - error parsing cookie or header token: ${err}`);
+    apiLogger.info(formatApiLogMessage(`Invalid token - error parsing cookie or header token: ${err}`, req));
     return res.status(401).send({
       success: false,
       message: 'Invalid token provided.'
@@ -126,7 +124,7 @@ export function authenticationGuard(req, res, next) {
 
 export function adminGuard(req, res, next) {
   if(req.role !== 'admin') {
-    logger.info(`Unauthorized request`);
+    apiLogger.info(formatApiLogMessage(`Unauthorized request`, req));
     return res.status(403).send({
       success: false,
       message: 'Not authorized.'

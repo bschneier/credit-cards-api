@@ -9,9 +9,15 @@
   "serverConfig" : {
     "port" : 3000
   },
-  "loggingConfig" : {
-    "directory" : "./logs",
+  "apiLoggingConfig" : {
+    "directory" : "./logs/api",
     "fileName" : "api.log",
+    "datePattern" : ".yyyy-MM-dd",
+    "logLevel" : "info"
+  },
+  "frontEndLoggingConfig" : {
+    "directory" : "./logs/front-end",
+    "fileName" : "front-end.log",
     "datePattern" : ".yyyy-MM-dd",
     "logLevel" : "info"
   },
