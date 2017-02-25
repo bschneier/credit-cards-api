@@ -53,10 +53,12 @@ userAuthenticatedRoutes.get('/profile', (req, res) => {
 });
 
 // update user profile data
-userAuthenticatedRoutes.put('/:id', (req, res) => {
-  User.findById(req.params.id, (err, user) => {
+userAuthenticatedRoutes.put('', (req, res) => {
+  // find user by username provided in auth token, so that regular
+  // users can only update their own data
+  User.findOne({userName: req.userName}, (err, user) => {
     if (err) {
-      apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
+      apiLogger.error(formatApiLogMessage(`Error finding user '${req.userName}': ${err}`, req));
       return res.json({info: 'error during find user'});
     }
 
@@ -116,6 +118,40 @@ userAdminRoutes.get('', (req, res) => {
 
     apiLogger.info(formatApiLogMessage(`User query for ${req.query} returned ${users.length} results`, req));
     res.json({info: `found ${users.length} users`, users: users});
+  });
+});
+
+// update user data for admin - can update any user
+userAdminRoutes.put('/:id', (req, res) => {
+  User.findById(req.params.id, (err, user) => {
+    if (err) {
+      apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
+      return res.json({info: 'error during find user'});
+    }
+
+    if (user) {
+      if(req.body.password) {
+        if(!bcrypt.compareSync(req.body.currentPassword, user.password)) {
+          apiLogger.info(formatApiLogMessage(`Invalid current password provided for password update for ${req.userName}`, req));
+          return res.json({info: 'invalid password provided'});
+        }
+        else {
+          delete req.body.currentPassword;
+        }
+      }
+      Object.assign(user, req.body);
+      user.save((err) => {
+        if (err) {
+          apiLogger.error(formatApiLogMessage(`Error updating user '${req.params.id}': ${err}`, req));
+          return res.json({info: 'error during user update'});
+        }
+        apiLogger.info(formatApiLogMessage(`user ${req.params.id} updated successfully`, req));
+        res.json({info: 'user updated successfully'});
+      });
+    } else {
+      apiLogger.info(formatApiLogMessage(`Could not find user '${req.params.id}'`, req));
+      res.json({info: 'user not found'});
+    }
   });
 });
 
