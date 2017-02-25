@@ -5,6 +5,8 @@ import { apiLogger, formatApiLogMessage } from '../logging';
 import bcrypt from 'bcryptjs';
 
 let userUnauthenticatedRoutes = router();
+
+// new user registration
 userUnauthenticatedRoutes.post('/:registrationCode', (req, res) => {
   Group.findOne({registrationCode: req.params.registrationCode}, '_id', (err, group) => {
     if (err) {
@@ -31,6 +33,8 @@ userUnauthenticatedRoutes.post('/:registrationCode', (req, res) => {
 });
 
 let userAuthenticatedRoutes = router();
+
+// get user profile data for user
 userAuthenticatedRoutes.get('/profile', (req, res) => {
   User.find({userName: req.userName}, 'firstName lastName userName email', (err, user) => {
     if (err) {
@@ -48,8 +52,9 @@ userAuthenticatedRoutes.get('/profile', (req, res) => {
   });
 });
 
-userAuthenticatedRoutes.put('/profile', (req, res) => {
-  User.findOne({userName: req.userName}, (err, user) => {
+// update user profile data
+userAuthenticatedRoutes.put('/:id', (req, res) => {
+  User.findById(req.params.id, (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
       return res.json({info: 'error during find user'});
@@ -68,20 +73,22 @@ userAuthenticatedRoutes.put('/profile', (req, res) => {
       Object.assign(user, req.body);
       user.save((err) => {
         if (err) {
-          apiLogger.error(formatApiLogMessage(`Error updating user '${req.userName}': ${err}`, req));
+          apiLogger.error(formatApiLogMessage(`Error updating user '${req.params.id}': ${err}`, req));
           return res.json({info: 'error during user update'});
         }
-        apiLogger.info(formatApiLogMessage(`user ${req.userName} updated successfully`, req));
+        apiLogger.info(formatApiLogMessage(`user ${req.params.id} updated successfully`, req));
         res.json({info: 'user updated successfully'});
       });
     } else {
-      apiLogger.info(formatApiLogMessage(`Could not find user '${req.userName}'`, req));
+      apiLogger.info(formatApiLogMessage(`Could not find user '${req.params.id}'`, req));
       res.json({info: 'user not found'});
     }
   });
 });
 
 let userAdminRoutes = router();
+
+// get user data by userid for admin - returns all user data except password
 userAdminRoutes.get('/:id', (req, res) => {
   User.findById(req.params.id, '-password', (err, user) => {
     if (err) {
@@ -99,6 +106,7 @@ userAdminRoutes.get('/:id', (req, res) => {
   });
 });
 
+// get user data by query parameters for admin - returns all user data except password
 userAdminRoutes.get('', (req, res) => {
   User.find(req.query, '-password', (err, users) => {
     if (err) {
@@ -111,30 +119,7 @@ userAdminRoutes.get('', (req, res) => {
   });
 });
 
-userAdminRoutes.put('/:id', (req, res) => {
-  User.findById(req.params.id, (err, user) => {
-    if (err) {
-      apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
-      return res.json({info: 'error during find user'});
-    }
-
-    if (user) {
-      Object.assign(user, req.body);
-      user.save((err) => {
-        if (err) {
-          apiLogger.error(formatApiLogMessage(`Error updating user '${req.params.id}': ${err}`, req));
-          return res.json({info: 'error during user update'});
-        }
-        apiLogger.info(formatApiLogMessage(`user ${req.params.id} updated successfully`, req));
-        res.json({info: 'user updated successfully'});
-      });
-    } else {
-      apiLogger.info(formatApiLogMessage(`Could not find user '${req.params.id}'`, req));
-      res.json({info: 'user not found'});
-    }
-  });
-});
-
+// user creation by admin
 userAdminRoutes.post('', (req, res) => {
   let user = new User(req.body);
   user.save((err, newUser) => {
@@ -147,6 +132,7 @@ userAdminRoutes.post('', (req, res) => {
   });
 });
 
+// delete user
 userAdminRoutes.delete('/:id', (req, res) => {
   User.findByIdAndRemove(req.params.id, (err, user) => {
     if (err) {

@@ -5,6 +5,7 @@ import { apiLogger, formatApiLogMessage } from '../logging';
 
 let groupAdminRoutes = router();
 
+// get group info
 groupAdminRoutes.get('', (req, res) => {
   Group.find(req.query, (err, groups) => {
     if (err) {
@@ -17,6 +18,7 @@ groupAdminRoutes.get('', (req, res) => {
   });
 });
 
+// update a group
 groupAdminRoutes.put('/:id', (req, res) => {
   Group.findById(req.params.id, (err, group) => {
     if (err) {
@@ -41,6 +43,7 @@ groupAdminRoutes.put('/:id', (req, res) => {
   });
 });
 
+// create a group
 groupAdminRoutes.post('', (req, res) => {
   let group = new Group(req.body);
   group.save((err, newGroup) => {
@@ -53,6 +56,7 @@ groupAdminRoutes.post('', (req, res) => {
   });
 });
 
+// delete a group
 groupAdminRoutes.delete('/:id', (req, res) => {
   // delete all users in group
   User.find({groupId: req.params.id}, '_id', (err, users) => {
