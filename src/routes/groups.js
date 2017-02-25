@@ -1,4 +1,5 @@
 import { Router as router } from 'express';
+import User from '../models/users';
 import Group from '../models/groups';
 import { apiLogger, formatApiLogMessage } from '../logging';
 
@@ -53,6 +54,28 @@ groupAdminRoutes.post('', (req, res) => {
 });
 
 groupAdminRoutes.delete('/:id', (req, res) => {
+  // delete all users in group
+  User.find({groupId: req.params.id}, '_id', (err, users) => {
+    if (err) {
+      apiLogger.error(formatApiLogMessage(`Error finding users in group '${req.params.id}': ${err}`, req));
+      return res.json({info: 'error during user group deletion'});
+    }
+
+    apiLogger.info(formatApiLogMessage(`User query for group ${req.params.id} returned ${users.length} results`, req));
+
+    users.forEach((user) => {
+      User.findByIdAndRemove(user._id, (err, user) => {
+      if (err) {
+        apiLogger.error(formatApiLogMessage(`Error deleting user '${user._id}': ${err}`, req));
+        return res.json({info: 'error during user group deletion'});
+      }
+
+      apiLogger.info(formatApiLogMessage(`user ${req.params.id} deleted successfully`, req));
+      });
+    });
+  });
+
+  // delete group
   Group.findByIdAndRemove(req.params.id, (err, group) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error deleting user group '${req.params.id}': ${err}`, req));
