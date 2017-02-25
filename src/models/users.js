@@ -1,9 +1,8 @@
 import mongoose from 'mongoose';
-import bluebird from 'bluebird';
 
 // mongoose defaults to their own promise library - mpromise,
 // which is deprecated, use ES6 promises instead
-mongoose.Promise = bluebird;
+mongoose.Promise = Promise;
 
 var userSchema = mongoose.Schema({ // eslint-disable-line new-cap
   userName: String,
