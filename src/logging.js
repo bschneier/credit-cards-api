@@ -55,9 +55,10 @@ export const frontEndLogger = new (winston.Logger)({
 });
 
 export function formatApiLogMessage(message, req) {
+  let ip = req.connection.remoteAddress || req.socket.remoteAddress;
   return {
     message: message,
-    ip_address: req.socket._peername.address.split(':')[3],
+    ip_address: ip.split(':')[3],
     url_requested: req.method + ' ' + req.protocol + '://' + req.hostname + req.originalUrl
   };
 }

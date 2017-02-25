@@ -3,6 +3,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import routes from './routes/all';
 import { apiLogger } from './logging';
+import bluebird from 'bluebird';
 import config from 'config';
 import fs from 'fs';
 import simpleEncryptor from 'simple-encryptor';
@@ -35,7 +36,7 @@ else {
 
 // mongoose defaults to their own promise library - mpromise,
 // which is deprecated, use ES6 promises instead
-mongoose.Promise = Promise;
+mongoose.Promise = bluebird;
 
 // connect to mongoDB
 const dbConfig = config.get('dbConfig');

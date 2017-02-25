@@ -1,11 +1,38 @@
 import { Router as router } from 'express';
 import User from '../models/users';
+import Group from '../models/groups';
 import { apiLogger, formatApiLogMessage } from '../logging';
 import bcrypt from 'bcryptjs';
 
+let userUnauthenticatedRoutes = router();
+userUnauthenticatedRoutes.post('/:registrationCode', (req, res) => {
+  Group.findOne({registrationCode: req.params.registrationCode}, '_id', (err, group) => {
+    if (err) {
+      apiLogger.error(formatApiLogMessage(`Error finding user group with code '${req.params.registrationCode}': ${err}`, req));
+      return res.json({info: 'error during find user group'});
+    }
+
+    if (group) {
+      let user = Object.assign(req.body, {groupId: group._id, role: 'user'});
+      new User(user).save((err, newUser) => {
+        if (err) {
+          apiLogger.error(formatApiLogMessage(`Error creating user: ${err}`, req));
+          return res.json({info: 'error during user creation'});
+        }
+        apiLogger.info(formatApiLogMessage(`user ${newUser._id} created successfully`, req));
+        res.json({info: 'user created successfully'});
+      });
+    }
+    else {
+      apiLogger.info(formatApiLogMessage(`Could not find user group with code '${req.params.registrationCode}'`, req));
+      res.json({info: 'user group not found'});
+    }
+  });
+});
+
 let userAuthenticatedRoutes = router();
 userAuthenticatedRoutes.get('/profile', (req, res) => {
-  User.find({userName: req.userName}, 'firstName lastName userName email', function (err, user) {
+  User.find({userName: req.userName}, 'firstName lastName userName email', (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.userName}': ${err}`, req));
       return res.json({info: 'error during find user'});
@@ -22,7 +49,7 @@ userAuthenticatedRoutes.get('/profile', (req, res) => {
 });
 
 userAuthenticatedRoutes.put('/profile', (req, res) => {
-  User.findOne({userName: req.userName}, '', function (err, user) {
+  User.findOne({userName: req.userName}, (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
       return res.json({info: 'error during find user'});
@@ -56,7 +83,7 @@ userAuthenticatedRoutes.put('/profile', (req, res) => {
 
 let userAdminRoutes = router();
 userAdminRoutes.get('/:id', (req, res) => {
-  User.findById(req.params.id, '-password', function (err, user) {
+  User.findById(req.params.id, '-password', (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
       return res.json({info: 'error during find user'});
@@ -73,7 +100,7 @@ userAdminRoutes.get('/:id', (req, res) => {
 });
 
 userAdminRoutes.get('', (req, res) => {
-  User.find(req.query, '-password', function (err, users) {
+  User.find(req.query, '-password', (err, users) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding users for query '${req.query}': ${err}`, req));
       return res.json({info: 'error during find user'});
@@ -85,7 +112,7 @@ userAdminRoutes.get('', (req, res) => {
 });
 
 userAdminRoutes.put('/:id', (req, res) => {
-  User.findById(req.params.id, '', function (err, user) {
+  User.findById(req.params.id, (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
       return res.json({info: 'error during find user'});
@@ -110,21 +137,21 @@ userAdminRoutes.put('/:id', (req, res) => {
 
 userAdminRoutes.post('', (req, res) => {
   let user = new User(req.body);
-  user.save((err) => {
+  user.save((err, newUser) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error creating user: ${err}`, req));
       return res.json({info: 'error during user creation'});
     }
-    apiLogger.info(formatApiLogMessage(`user ${req.params.id} created successfully`, req));
+    apiLogger.info(formatApiLogMessage(`user ${newUser._id} created successfully`, req));
     res.json({info: 'user created successfully'});
   });
 });
 
 userAdminRoutes.delete('/:id', (req, res) => {
-  User.findByIdAndRemove(req.params.id, function (err, user) {
+  User.findByIdAndRemove(req.params.id, (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error deleting user '${req.params.id}': ${err}`, req));
-      return res.json({info: 'error during find deletion'});
+      return res.json({info: 'error during user deletion'});
     }
 
     apiLogger.info(formatApiLogMessage(`user ${req.params.id} deleted successfully`, req));
@@ -132,4 +159,4 @@ userAdminRoutes.delete('/:id', (req, res) => {
   });
 });
 
-export { userAdminRoutes, userAuthenticatedRoutes };
+export { userUnauthenticatedRoutes, userAdminRoutes, userAuthenticatedRoutes };

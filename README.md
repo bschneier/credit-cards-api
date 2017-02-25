@@ -10,7 +10,7 @@ db password that will be used to connect to the mongo back end. The other key wi
 be used to create JSON web tokens used by the API for authentication. The name and
 location of this file can be set in ./config/default.json. After reading the encryption
 keys from the text file, the API will delete the file. So that file will have to be
-restaged each time the API is redeployed or restarted. The API uses the bcryptjs
+restaged each time the API is redeployed or restarted. The API uses the simple-encryptor
 npm package to encrypt and decrypt the mongo db password stored in the config file.
 
 npm install -g nsp

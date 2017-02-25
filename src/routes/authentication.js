@@ -26,7 +26,7 @@ routes.post('', (req, res) => {
     res.json({info: 'invalid request', data: {responseCode : AUTH_RESPONSES.INVALID_REQUEST}});
   }
   else {
-    User.findOne({ userName : req.body.userName }, '-email', function (err, user) {
+    User.findOne({ userName : req.body.userName }, '-email', (err, user) => {
       if (err) {
         apiLogger.error(formatApiLogMessage(`Authentication request failed - error finding user '${req.body.userName}': ${err}`, req));
         res.json({info: 'error during find user', data: {responseCode : AUTH_RESPONSES.ERROR}, error: err});
