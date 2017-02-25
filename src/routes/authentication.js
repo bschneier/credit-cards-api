@@ -41,10 +41,10 @@ routes.post('', (req, res) => {
         else {
           // validate password
           if(bcrypt.compareSync(req.body.password, user.password)) {
-            const sessionToken = jwt.sign({ userName: user.userName, role: user.role }, process.env.TOKEN_SECRET, {
+            const sessionToken = jwt.sign({ userName: user.userName, role: user.role, groupId: user.groupId }, process.env.TOKEN_SECRET, {
               expiresIn: 1200
             });
-            const cookieToken = jwt.sign({ userName: user.userName, role: user.role, cookie: true }, process.env.COOKIE_TOKEN_SECRET, {
+            const cookieToken = jwt.sign({ userName: user.userName, role: user.role, groupId: user.groupId, cookie: true }, process.env.COOKIE_TOKEN_SECRET, {
               expiresIn: 1200
             });
             req.session.token = cookieToken;
@@ -99,8 +99,10 @@ export function authenticationGuard(req, res, next) {
     let cookieToken = jwt.verify(req.session.token, process.env.COOKIE_TOKEN_SECRET);
     let headerToken = jwt.verify(req.headers['credit-cards-authentication'], process.env.TOKEN_SECRET);
 
-    if(headerToken.userName === cookieToken.userName && headerToken.role === cookieToken.role) {
+    if(headerToken.userName === cookieToken.userName && headerToken.role === cookieToken.role
+      && headerToken.groupId == cookieToken.groupId) {
       req.role = headerToken.role;
+      req.groupId = headerToken.groupId;
       req.userName = headerToken.userName;
       next();
     }
