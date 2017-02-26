@@ -130,15 +130,6 @@ userAdminRoutes.put('/:id', (req, res) => {
     }
 
     if (user) {
-      if(req.body.password) {
-        if(!bcrypt.compareSync(req.body.currentPassword, user.password)) {
-          apiLogger.info(formatApiLogMessage(`Invalid current password provided for password update for ${req.userName}`, req));
-          return res.json({info: 'invalid password provided'});
-        }
-        else {
-          delete req.body.currentPassword;
-        }
-      }
       Object.assign(user, req.body);
       user.save((err) => {
         if (err) {
