@@ -100,7 +100,7 @@ export function authenticationGuard(req, res, next) {
     let headerToken = jwt.verify(req.headers['credit-cards-authentication'], process.env.TOKEN_SECRET);
 
     if(headerToken.userName === cookieToken.userName && headerToken.role === cookieToken.role
-      && headerToken.groupId == cookieToken.groupId) {
+      && headerToken.groupId === cookieToken.groupId) {
       req.role = headerToken.role;
       req.groupId = headerToken.groupId;
       req.userName = headerToken.userName;
