@@ -9,4 +9,4 @@ var groupSchema = mongoose.Schema({ // eslint-disable-line new-cap
   registrationCode: String
 });
 
-export default mongoose.model('Group', groupSchema);
+export default mongoose.model('Group', groupSchema, 'Groups');

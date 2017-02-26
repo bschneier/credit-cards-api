@@ -9,4 +9,4 @@ var creditCardSchema = mongoose.Schema({ // eslint-disable-line new-cap
   groupId: mongoose.Schema.Types.ObjectId
 });
 
-export default mongoose.model('CreditCard', creditCardSchema);
+export default mongoose.model('CreditCard', creditCardSchema, 'CreditCards');

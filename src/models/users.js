@@ -16,4 +16,4 @@ var userSchema = mongoose.Schema({ // eslint-disable-line new-cap
   password: String
 });
 
-export default mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema, 'Users');
