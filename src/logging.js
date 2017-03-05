@@ -44,7 +44,7 @@ const frontEndLogger = new (winston.Logger)({
     new DailyRollingFile({
       filename: `${frontEndLogConfig.directory}/${frontEndLogConfig.fileName}`,
       timestamp: tsFormat,
-      handleExceptions: true,
+      handleExceptions: false,
       humanReadableUnhandledException: true,
       datePattern: frontEndLogConfig.datePattern,
       prepend: false,
