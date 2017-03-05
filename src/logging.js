@@ -1,7 +1,7 @@
-import winston from 'winston';
-import fs from 'fs';
-import DailyRollingFile from 'winston-daily-rotate-file';
-import config from 'config';
+let winston = require('winston');
+let fs = require('fs');
+let DailyRollingFile = require('winston-daily-rotate-file');
+let config = require( 'config');
 
 const apiLogConfig = config.get('apiLoggingConfig');
 const frontEndLogConfig = config.get('frontEndLoggingConfig');
@@ -23,7 +23,7 @@ for(let directory of logDirectories) {
 const tsFormat = () => (new Date()).toLocaleTimeString();
 
 // logger used internally by api to record api info
-export const apiLogger = new (winston.Logger)({
+const apiLogger = new (winston.Logger)({
   transports: [
     new DailyRollingFile({
       filename: `${apiLogConfig.directory}/${apiLogConfig.fileName}`,
@@ -39,7 +39,7 @@ export const apiLogger = new (winston.Logger)({
 });
 
 // logger called by external front end to record front end info
-export const frontEndLogger = new (winston.Logger)({
+const frontEndLogger = new (winston.Logger)({
   transports: [
     new DailyRollingFile({
       filename: `${frontEndLogConfig.directory}/${frontEndLogConfig.fileName}`,
@@ -54,7 +54,7 @@ export const frontEndLogger = new (winston.Logger)({
   ]
 });
 
-export function formatApiLogMessage(message, req) {
+function formatApiLogMessage(message, req) {
   let ip = req.connection.remoteAddress || req.socket.remoteAddress;
   return {
     message: message,
@@ -63,7 +63,7 @@ export function formatApiLogMessage(message, req) {
   };
 }
 
-export function formatFrontEndLogMessage(req) {
+function formatFrontEndLogMessage(req) {
   let ip = req.connection.remoteAddress || req.socket.remoteAddress;
   return {
     operatingSystem: req.body.operatingSystem,
@@ -74,3 +74,5 @@ export function formatFrontEndLogMessage(req) {
     ipAddress: ip.split(':')[3]
   };
 }
+
+module.exports = { apiLogger, frontEndLogger, formatApiLogMessage, formatFrontEndLogMessage };

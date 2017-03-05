@@ -1,26 +1,26 @@
-import { Router as router } from 'express';
-import { userUnauthenticatedRoutes, userAuthenticatedRoutes, userAdminRoutes } from './users';
-import { authenticationGuard, adminGuard, authenticationRoutes } from './authentication';
-import { frontEndLogRoutes } from './frontEndLog';
-import { groupAdminRoutes } from './groups';
-import { creditCardAuthenticatedRoutes, creditCardAdminRoutes } from './creditCards';
+let router = require('express').Router;
+let users = require('./users');
+let authentication = require('./authentication');
+let frontEndLogRoutes = require('./frontEndLog');
+let groupRoutes = require('./groups');
+let creditCards = require('./creditCards');
 
 let routes = router();
 
 // non authenticated routes
-routes.use('/users/authenticate', authenticationRoutes);
+routes.use('/users/authenticate', authentication.routes);
 routes.use('/log', frontEndLogRoutes);
-routes.use('/users', userUnauthenticatedRoutes);
+routes.use('/users', users.userUnauthenticatedRoutes);
 
 // authenticated routes
-routes.use(authenticationGuard);
-routes.use('/users', userAuthenticatedRoutes);
-routes.use('/credit-cards', creditCardAuthenticatedRoutes);
+routes.use(authentication.authenticationGuard);
+routes.use('/users', users.userAuthenticatedRoutes);
+routes.use('/credit-cards', creditCards.creditCardAuthenticatedRoutes);
 
 // admin routes
-routes.use(adminGuard);
-routes.use('/users', userAdminRoutes);
-routes.use('/groups', groupAdminRoutes);
-routes.use('/credit-cards', creditCardAdminRoutes);
+routes.use(authentication.adminGuard);
+routes.use('/users', users.userAdminRoutes);
+routes.use('/groups', groupRoutes);
+routes.use('/credit-cards', creditCards.creditCardAdminRoutes);
 
-export default routes;
+module.exports = routes;

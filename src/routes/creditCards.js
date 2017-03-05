@@ -1,11 +1,11 @@
-import { Router as router } from 'express';
-import CreditCard from '../models/creditCards';
-import { apiLogger, formatApiLogMessage } from '../logging';
-
-let creditCardAuthenticatedRoutes = router();
+let router = require('express').Router;
+let CreditCard = require('../models/creditCards');
+let logging = require('../logging');
+let apiLogger = logging.apiLogger;
+let formatApiLogMessage = logging.formatApiLogMessage;
 
 // get all credit cards in the user's group
-creditCardAuthenticatedRoutes.get('/group', (req, res) => {
+function getCreditCardsByGroup(req, res) {
   CreditCard.find({groupId: req.groupId}, (err, creditCards) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding credit cards for group '${req.groupId}': ${err}`, req));
@@ -15,10 +15,10 @@ creditCardAuthenticatedRoutes.get('/group', (req, res) => {
     apiLogger.info(formatApiLogMessage(`Credit card query for group ${req.groupId} returned ${creditCards.length} results`, req));
     res.json({info: `found ${creditCards.length} credit cards`, creditCards: creditCards});
   });
-});
+}
 
 // get credit card info for specific card
-creditCardAuthenticatedRoutes.get('/:id', (req, res) => {
+function getCreditCardById(req, res) {
   CreditCard.findById(req.params.id, (err, creditCard) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding credit card '${req.params.id}': ${err}`, req));
@@ -44,10 +44,10 @@ creditCardAuthenticatedRoutes.get('/:id', (req, res) => {
       res.json({info: 'credit card not found'});
     }
   });
-});
+}
 
 // update credit card info
-creditCardAuthenticatedRoutes.put('/:id', (req, res) => {
+function updateCreditCard(req, res) {
   CreditCard.findById(req.params.id, (err, creditCard) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding credit card '${req.params.id}': ${err}`, req));
@@ -80,10 +80,10 @@ creditCardAuthenticatedRoutes.put('/:id', (req, res) => {
       res.json({info: 'credit card not found'});
     }
   });
-});
+}
 
 // create a credit card
-creditCardAuthenticatedRoutes.post('', (req, res) => {
+function createCreditCard(req, res) {
   let creditCardData = req.body;
   // regular users can only create credit cards in their own group
   if(req.role !== 'admin') {
@@ -98,10 +98,10 @@ creditCardAuthenticatedRoutes.post('', (req, res) => {
     apiLogger.info(formatApiLogMessage(`credit card ${newCreditCard._id} created successfully`, req));
     res.json({info: 'credit card created successfully'});
   });
-});
+}
 
 // delete a credit card
-creditCardAuthenticatedRoutes.delete('/:id', (req, res) => {
+function deleteCreditCard(req, res) {
   if(req.role !== 'admin') {
     CreditCard.findById(req.params.id, (err, creditCard) => {
       if (err) {
@@ -131,12 +131,10 @@ creditCardAuthenticatedRoutes.delete('/:id', (req, res) => {
   else {
     deleteCard(req, res);
   }
-});
-
-let creditCardAdminRoutes = router();
+}
 
 // get credit card data by query parameters for admin - returns all credit card data
-creditCardAdminRoutes.get('', (req, res) => {
+function getAdminCreditCards(req, res) {
   CreditCard.find(req.query, (err, creditCards) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding credit cards for query '${req.query}': ${err}`, req));
@@ -146,7 +144,7 @@ creditCardAdminRoutes.get('', (req, res) => {
     apiLogger.info(formatApiLogMessage(`Credit card query for ${req.query} returned ${creditCards.length} results`, req));
     res.json({info: `found ${creditCards.length} credit cards`, creditCards: creditCards});
   });
-});
+}
 
 function deleteCard(req, res) {
   CreditCard.findByIdAndRemove(req.params.id, (err, user) => {
@@ -160,4 +158,14 @@ function deleteCard(req, res) {
   });
 }
 
-export { creditCardAdminRoutes, creditCardAuthenticatedRoutes };
+let creditCardAuthenticatedRoutes = router();
+creditCardAuthenticatedRoutes.get('/group', getCreditCardsByGroup);
+creditCardAuthenticatedRoutes.get('/:id', getCreditCardById);
+creditCardAuthenticatedRoutes.put('/:id', updateCreditCard);
+creditCardAuthenticatedRoutes.post('', createCreditCard);
+creditCardAuthenticatedRoutes.delete('/:id', deleteCreditCard);
+
+let creditCardAdminRoutes = router();
+creditCardAdminRoutes.get('', getAdminCreditCards);
+
+module.exports = { creditCardAdminRoutes, creditCardAuthenticatedRoutes };

@@ -1,9 +1,9 @@
-import { Router as router } from 'express';
-import { frontEndLogger, formatFrontEndLogMessage } from '../logging';
+let router = require('express').Router;
+let logging = require('../logging');
+let frontEndLogger = logging.frontEndLogger;
+let formatFrontEndLogMessage = logging.formatFrontEndLogMessage;
 
-let routes = router();
-
-routes.post('', (req, res) => {
+function writeFrontEndLogMessage(req, res) {
   switch(req.body.logLevel) {
     case 'ERROR':
       frontEndLogger.error(formatFrontEndLogMessage(req));
@@ -16,6 +16,9 @@ routes.post('', (req, res) => {
       break;
   }
   res.json({info: 'log entry created successfully'});
-});
+}
 
-export { routes as frontEndLogRoutes };
+let frontEndLogRoutes = router();
+frontEndLogRoutes.post('', writeFrontEndLogMessage);
+
+module.exports = frontEndLogRoutes;

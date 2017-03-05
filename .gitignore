@@ -6,6 +6,3 @@ node_modules
 
 # logs directory
 logs
-
-# build output directory
-dist

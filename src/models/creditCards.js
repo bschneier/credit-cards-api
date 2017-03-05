@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+let mongoose = require('mongoose');
 
 // mongoose defaults to their own promise library - mpromise,
 // which is deprecated, use ES6 promises instead
@@ -9,4 +9,4 @@ var creditCardSchema = mongoose.Schema({ // eslint-disable-line new-cap
   groupId: mongoose.Schema.Types.ObjectId
 });
 
-export default mongoose.model('CreditCard', creditCardSchema, 'CreditCards');
+module.exports = mongoose.model('CreditCard', creditCardSchema, 'CreditCards');

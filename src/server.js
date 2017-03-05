@@ -1,12 +1,12 @@
-import mongoose from 'mongoose';
-import express from 'express';
-import bodyParser from 'body-parser';
-import routes from './routes/all';
-import { apiLogger } from './logging';
-import config from 'config';
-import fs from 'fs';
-import simpleEncryptor from 'simple-encryptor';
-import cookieSession from 'cookie-session';
+let mongoose = require('mongoose');
+let express = require('express');
+let bodyParser = require('body-parser');
+let routes = require('./routes/all');
+let apiLogger = require('./logging').apiLogger;
+let config = require('config');
+let fs = require('fs');
+let simpleEncryptor = require('simple-encryptor');
+let cookieSession = require('cookie-session');
 
 // get encryption key from file, save in environment variable, and delete file
 const keyFile = config.get('keyConfig.filePath');
@@ -57,10 +57,11 @@ app.use(cookieSession({
   maxAge: 20 * 60 * 1000,
   httpOnly: true
 }));
-// body-parser urlencode?
 app.use('/', routes);
 
 let serverPort = config.get('serverConfig.port');
 app.listen(serverPort, () => {
   apiLogger.info(`Server has started and is listening at port ${serverPort}.`);
 });
+
+module.exports = app;

@@ -1,6 +1,5 @@
 {
   "root": true,
-  "parser": "babel-eslint",
   "plugins": ["import"],
   "env": {
     "es6": true,

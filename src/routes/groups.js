@@ -1,12 +1,12 @@
-import { Router as router } from 'express';
-import User from '../models/users';
-import Group from '../models/groups';
-import { apiLogger, formatApiLogMessage } from '../logging';
-
-let groupAdminRoutes = router();
+let router = require('express').Router;
+let User = require('../models/users');
+let Group = require('../models/groups');
+let logging = require('../logging');
+let apiLogger = logging.apiLogger;
+let formatApiLogMessage = logging.formatApiLogMessage;
 
 // get group info
-groupAdminRoutes.get('', (req, res) => {
+function getGroups(req, res) {
   Group.find(req.query, (err, groups) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user groups for query '${req.query}': ${err}`, req));
@@ -16,10 +16,10 @@ groupAdminRoutes.get('', (req, res) => {
     apiLogger.info(formatApiLogMessage(`User group query for ${req.query} returned ${groups.length} results`, req));
     res.json({info: `found ${groups.length} user groups`, groups: groups});
   });
-});
+}
 
 // update a group
-groupAdminRoutes.put('/:id', (req, res) => {
+function updateGroup(req, res) {
   Group.findById(req.params.id, (err, group) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user group '${req.params.id}': ${err}`, req));
@@ -41,10 +41,10 @@ groupAdminRoutes.put('/:id', (req, res) => {
       res.json({info: 'user group not found'});
     }
   });
-});
+}
 
 // create a group
-groupAdminRoutes.post('', (req, res) => {
+function createGroup(req, res) {
   let group = new Group(req.body);
   group.save((err, newGroup) => {
     if (err) {
@@ -54,10 +54,10 @@ groupAdminRoutes.post('', (req, res) => {
     apiLogger.info(formatApiLogMessage(`user group ${newGroup._id} created successfully`, req));
     res.json({info: 'user group created successfully'});
   });
-});
+}
 
 // delete a group
-groupAdminRoutes.delete('/:id', (req, res) => {
+function deleteGroup(req, res) {
   // delete all users in group
   User.find({groupId: req.params.id}, '_id', (err, users) => {
     if (err) {
@@ -89,6 +89,12 @@ groupAdminRoutes.delete('/:id', (req, res) => {
     apiLogger.info(formatApiLogMessage(`user group ${req.params.id} deleted successfully`, req));
     res.json({info: 'user group deleted successfully'});
   });
-});
+}
 
-export { groupAdminRoutes };
+let groupAdminRoutes = router();
+groupAdminRoutes.get('', getGroups);
+groupAdminRoutes.put('/:id', updateGroup);
+groupAdminRoutes.post('', createGroup);
+groupAdminRoutes.delete('/:id', deleteGroup);
+
+module.exports = groupAdminRoutes;

@@ -1,10 +1,12 @@
-import { Router as router } from 'express';
-import User from '../models/users';
-import { apiLogger, formatApiLogMessage } from '../logging';
-import bcrypt from 'bcryptjs';
-import redis from 'redis';
-import config from 'config';
-import jwt from 'jsonwebtoken';
+let router = require('express').Router;
+let User = require('../models/users');
+let logging = require('../logging');
+let apiLogger = logging.apiLogger;
+let formatApiLogMessage = logging.formatApiLogMessage;
+let bcrypt = require('bcryptjs');
+let redis = require('redis');
+let config = require('config');
+let jwt = require('jsonwebtoken');
 
 const AUTH_RESPONSES = {
   LOCKED_OUT : "LockedOut",
@@ -17,8 +19,50 @@ const AUTH_RESPONSES = {
 const redisConfig = config.get('redisConfig');
 const redisClient = redis.createClient(redisConfig.port, redisConfig.host);
 
-let routes = router();
-routes.post('', (req, res) => {
+function authenticationGuard(req, res, next) {
+  try {
+    let cookieToken = jwt.verify(req.session.token, process.env.COOKIE_TOKEN_SECRET);
+    let headerToken = jwt.verify(req.headers['credit-cards-authentication'], process.env.TOKEN_SECRET);
+
+    if(headerToken.userName === cookieToken.userName && headerToken.role === cookieToken.role
+      && headerToken.groupId === cookieToken.groupId) {
+      req.role = headerToken.role;
+      req.groupId = headerToken.groupId;
+      req.userName = headerToken.userName;
+      next();
+    }
+    else {
+      apiLogger.info(formatApiLogMessage(`Invalid tokens - content does not match`, req));
+      return res.status(401).send({
+        success: false,
+        message: 'Invalid token provided.'
+      });
+    }
+  }
+  catch (err) {
+    apiLogger.info(formatApiLogMessage(`Invalid token - error parsing cookie or header token: ${err}`, req));
+    return res.status(401).send({
+      success: false,
+      message: 'Invalid token provided.'
+    });
+  }
+
+}
+
+function adminGuard(req, res, next) {
+  if(req.role !== 'admin') {
+    apiLogger.info(formatApiLogMessage(`Unauthorized request`, req));
+    return res.status(403).send({
+      success: false,
+      message: 'Not authorized.'
+    });
+  }
+  else {
+    next();
+  }
+}
+
+function authenticate(req, res) {
   // validate request for expected parameters
   if(!req.body.hasOwnProperty('userName') || !req.body.hasOwnProperty('password')
    || !req.body.hasOwnProperty('rememberMe')) {
@@ -48,6 +92,7 @@ routes.post('', (req, res) => {
               expiresIn: 1200
             });
             req.session.token = cookieToken;
+            apiLogger.info(formatApiLogMessage(`User '${user.userName}' has logged in successfully`, req));
 
             user.password = undefined;
             res.json({
@@ -90,49 +135,9 @@ routes.post('', (req, res) => {
       }
     });
   }
-});
-
-export { routes as authenticationRoutes };
-
-export function authenticationGuard(req, res, next) {
-  try {
-    let cookieToken = jwt.verify(req.session.token, process.env.COOKIE_TOKEN_SECRET);
-    let headerToken = jwt.verify(req.headers['credit-cards-authentication'], process.env.TOKEN_SECRET);
-
-    if(headerToken.userName === cookieToken.userName && headerToken.role === cookieToken.role
-      && headerToken.groupId === cookieToken.groupId) {
-      req.role = headerToken.role;
-      req.groupId = headerToken.groupId;
-      req.userName = headerToken.userName;
-      next();
-    }
-    else {
-      apiLogger.info(formatApiLogMessage(`Invalid tokens - content does not match`, req));
-      return res.status(401).send({
-        success: false,
-        message: 'Invalid token provided.'
-      });
-    }
-  }
-  catch (err) {
-    apiLogger.info(formatApiLogMessage(`Invalid token - error parsing cookie or header token: ${err}`, req));
-    return res.status(401).send({
-      success: false,
-      message: 'Invalid token provided.'
-    });
-  }
-
 }
 
-export function adminGuard(req, res, next) {
-  if(req.role !== 'admin') {
-    apiLogger.info(formatApiLogMessage(`Unauthorized request`, req));
-    return res.status(403).send({
-      success: false,
-      message: 'Not authorized.'
-    });
-  }
-  else {
-    next();
-  }
-}
+let routes = router();
+routes.post('', authenticate);
+
+module.exports = { routes, authenticationGuard, adminGuard };

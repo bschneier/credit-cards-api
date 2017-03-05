@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+let mongoose = require('mongoose');
 
 // mongoose defaults to their own promise library - mpromise,
 // which is deprecated, use ES6 promises instead
@@ -9,4 +9,4 @@ var groupSchema = mongoose.Schema({ // eslint-disable-line new-cap
   registrationCode: String
 });
 
-export default mongoose.model('Group', groupSchema, 'Groups');
+module.exports = mongoose.model('Group', groupSchema, 'Groups');

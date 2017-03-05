@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+let mongoose = require('mongoose');
 
 // mongoose defaults to their own promise library - mpromise,
 // which is deprecated, use ES6 promises instead
@@ -16,4 +16,4 @@ var userSchema = mongoose.Schema({ // eslint-disable-line new-cap
   password: String
 });
 
-export default mongoose.model('User', userSchema, 'Users');
+module.exports = mongoose.model('User', userSchema, 'Users');
