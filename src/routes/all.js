@@ -8,7 +8,7 @@ let creditCards = require('./creditCards');
 let routes = router();
 
 // non authenticated routes
-routes.use('/users/authenticate', authentication.routes);
+routes.use('/authenticate', authentication.routes);
 routes.use('/log', frontEndLogRoutes);
 routes.use('/users', users.userUnauthenticatedRoutes);
 
