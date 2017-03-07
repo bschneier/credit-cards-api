@@ -8,14 +8,6 @@ let redis = require('redis');
 let config = require('config');
 let jwt = require('jsonwebtoken');
 
-const AUTH_RESPONSES = {
-  LOCKED_OUT : "LockedOut",
-  LOGIN_SUCCESS : "LoginSuccess",
-  LOGIN_FAIL : "LoginFail",
-  ERROR : "Error",
-  INVALID_REQUEST : "InvalidRequest"
-};
-
 const redisConfig = config.get('redisConfig');
 const redisClient = redis.createClient(redisConfig.port, redisConfig.host);
 
@@ -33,29 +25,19 @@ function authenticationGuard(req, res, next) {
     }
     else {
       apiLogger.info(formatApiLogMessage(`Invalid tokens - content does not match`, req));
-      return res.status(401).send({
-        success: false,
-        message: 'Invalid token provided.'
-      });
+      return res.status(401).send({ message: 'Invalid token provided.' });
     }
   }
   catch (err) {
     apiLogger.info(formatApiLogMessage(`Invalid token - error parsing cookie or header token: ${err}`, req));
-    return res.status(401).send({
-      success: false,
-      message: 'Invalid token provided.'
-    });
+    return res.status(401).send({ message: 'Invalid token provided.' });
   }
-
 }
 
 function adminGuard(req, res, next) {
   if(req.role !== 'admin') {
     apiLogger.info(formatApiLogMessage(`Unauthorized request`, req));
-    return res.status(403).send({
-      success: false,
-      message: 'Not authorized.'
-    });
+    return res.status(403).send({ message: 'Not authorized.' });
   }
   else {
     next();
@@ -67,20 +49,20 @@ function authenticate(req, res) {
   if(!req.body.hasOwnProperty('userName') || !req.body.hasOwnProperty('password')
    || !req.body.hasOwnProperty('rememberMe')) {
     apiLogger.info(formatApiLogMessage('invalid authentication request: ' + JSON.stringify(req.body), req));
-    res.json({info: 'invalid request', data: {responseCode : AUTH_RESPONSES.INVALID_REQUEST}});
+    res.status(400).send({ message: 'invalid request' });
   }
   else {
     User.findOne({ userName : req.body.userName }, '-email', (err, user) => {
       if (err) {
         apiLogger.error(formatApiLogMessage(`Authentication request failed - error finding user '${req.body.userName}': ${err}`, req));
-        res.json({info: 'error during find user', data: {responseCode : AUTH_RESPONSES.ERROR}, error: err});
+        res.json({ message: 'error during find user', error: err });
       }
 
       if (user) {
         // check if user account is locked
         if(user.lockoutExpiration > new Date()) {
           apiLogger.info(formatApiLogMessage(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
-          res.json({info: 'user account is locked out', data: {responseCode : AUTH_RESPONSES.LOCKED_OUT}});
+          res.json({ message: 'user account is locked out' });
         }
         else {
           // validate password
@@ -96,8 +78,7 @@ function authenticate(req, res) {
 
             user.password = undefined;
             res.json({
-              info: 'login success',
-              responseCode : AUTH_RESPONSES.LOGIN_SUCCESS,
+              message: 'login success',
               user : user,
               token : sessionToken
             });
@@ -120,18 +101,18 @@ function authenticate(req, res) {
                   }
                 });
 
-                res.json({info: 'user account is locked out', data: {responseCode : AUTH_RESPONSES.LOCKED_OUT}});
+                res.json({ message: 'user account is locked out' });
               }
               else {
                 redisClient.setex('login-failures:' + user._id, 1200, ++failures);
-                res.json({info: 'login failed', data: {responseCode : AUTH_RESPONSES.LOGIN_FAIL}});
+                res.json({ message: 'login failed' });
               }
             });
           }
         }
       } else {
         apiLogger.info(formatApiLogMessage(`Login failed - could not find user '${req.body.userName}'`, req));
-        res.json({info: 'login failed', data: {responseCode : AUTH_RESPONSES.LOGIN_FAIL}});
+        res.json({ message: 'login failed' });
       }
     });
   }

@@ -17,8 +17,9 @@
     "start-dev-server": "npm run copy-key && npm start",
     "copy-key": "copy ..\\encryption_key.txt .\\",
     "lint": "eslint ./**/*.js --color",
-    "start": "node src/server",
-    "prestart": "npm run lint && nsp check"
+    "start": "node src/initializeApi",
+    "prestart": "npm run lint && nsp check && npm test",
+    "test": "mocha"
   },
   "dependencies": {
     "agenda": "^0.9.0",
@@ -37,10 +38,13 @@
   },
   "devDependencies": {
     "chai": "^3.5.0",
+    "chai-http": "^3.0.0",
     "eslint": "^3.12.2",
     "eslint-config-airbnb-base": "^11.0.0",
     "eslint-plugin-import": "^2.2.0",
-    "mocha": "^3.2.0"
+    "mocha": "^3.2.0",
+    "sinon": "^1.17.7",
+    "sinon-chai": "^2.8.0"
   },
   "license": "MIT"
 }
