@@ -1,15 +1,17 @@
-let router = require('express').Router;
+const router = require('express').Router;
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
 let User = require('../models/users');
 let logging = require('../logging');
 let apiLogger = logging.apiLogger;
 let formatApiLogMessage = logging.formatApiLogMessage;
-let bcrypt = require('bcryptjs');
-let redis = require('redis');
-let config = require('config');
-let jwt = require('jsonwebtoken');
 
-const redisConfig = config.get('redisConfig');
-const redisClient = redis.createClient(redisConfig.port, redisConfig.host);
+let redisClient;
+
+function setRedisClient(client) {
+  redisClient = client;
+}
 
 function authenticationGuard(req, res, next) {
   try {
@@ -121,4 +123,4 @@ function authenticate(req, res) {
 let routes = router();
 routes.post('', authenticate);
 
-module.exports = { routes, authenticationGuard, adminGuard };
+module.exports = { routes, authenticationGuard, adminGuard, setRedisClient };

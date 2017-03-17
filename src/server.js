@@ -4,16 +4,20 @@ let routes = require('./routes/all');
 let apiLogger = require('./logging').apiLogger;
 let config = require('config');
 let cookieSession = require('cookie-session');
+let srs = require('secure-random-string');
 
-function startServer(cookieSecret) {
+function startServer() {
+  process.env.TOKEN_SECRET = srs();
+  process.env.COOKIE_TOKEN_SECRET = srs();
+
   // configure and start express server
   let app = express();
   app.disable('x-powered-by');
   app.use(bodyParser.json());
-  // set 'secure: true' cookie option once SSL is implemented
+  // TODO: set 'secure: true' cookie option once SSL is implemented
   app.use(cookieSession({
     name: 'credit-cards-session',
-    secret: cookieSecret,
+    secret: srs(),
     maxAge: 20 * 60 * 1000,
     httpOnly: true
   }));

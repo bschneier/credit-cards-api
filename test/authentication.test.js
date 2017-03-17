@@ -1,10 +1,12 @@
-let chai = require('chai');
-let chaiHttp = require('chai-http');
-let sinon = require('sinon');
-let sinonChai = require('sinon-chai');
+const chai = require('chai');
+const chaiHttp = require('chai-http');
+const sinon = require('sinon');
+const sinonChai = require('sinon-chai');
 let bcrypt = require('bcryptjs');
+
 let User = require('../src/models/users');
-let server = require('./initializeTestApi');
+const setTestRedisClient = require('./setTestRedisClient');
+const server = require('../src/server')();
 
 chai.should();
 chai.use(chaiHttp);

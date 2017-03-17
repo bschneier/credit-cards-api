@@ -14,12 +14,10 @@
     "npm": ">=3.10.9"
   },
   "scripts": {
-    "start-dev-server": "npm run copy-key && npm start",
-    "copy-key": "copy ..\\encryption_key.txt .\\",
     "lint": "eslint ./**/*.js --color",
     "start": "node src/initializeApi",
     "prestart": "npm run lint && nsp check && npm test",
-    "test": "mocha"
+    "test": "mocha test/*.test.js"
   },
   "dependencies": {
     "agenda": "^0.9.0",
@@ -32,7 +30,7 @@
     "mongoose": "^4.7.6",
     "redis": "^2.6.3",
     "request": "^2.79.0",
-    "simple-encryptor": "^1.1.0",
+    "secure-random-string": "^1.0.0",
     "winston": "^2.3.0",
     "winston-daily-rotate-file": "^1.4.2"
   },
@@ -42,6 +40,7 @@
     "eslint": "^3.12.2",
     "eslint-config-airbnb-base": "^11.0.0",
     "eslint-plugin-import": "^2.2.0",
+    "fakeredis": "^2.0.0",
     "mocha": "^3.2.0",
     "sinon": "^1.17.7",
     "sinon-chai": "^2.8.0"
