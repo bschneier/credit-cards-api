@@ -34,18 +34,18 @@ function createUserByRegistrationCode(req, res) {
 
 // get user profile data for user
 function getAuthenticatedUser(req, res) {
-  User.find({userName: req.userName}, 'firstName lastName userName email', (err, user) => {
+  User.findOne({userName: req.userName}, 'firstName lastName userName email', (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.userName}': ${err}`, req));
-      return res.json({info: 'error during find user'});
+      return res.json({message: 'error during find user'});
     }
 
     if (user) {
       apiLogger.info(formatApiLogMessage(`user ${req.userName} found successfully`, req));
-      res.json({info: 'user found successfully', user: user});
+      res.json({message: 'user found successfully', user: user});
     } else {
       apiLogger.info(formatApiLogMessage(`Could not find user '${req.userName}'`, req));
-      res.json({info: 'user not found'});
+      res.json({message: 'user not found'});
     }
   });
 }
