@@ -1,8 +1,6 @@
 const config = require('config');
 const mongoose = require('mongoose');
 const redis = require('redis');
-
-const startServer = require('./server');
 const setRedisClient = require('./routes/authentication').setRedisClient;
 
 // create redis client
@@ -21,4 +19,4 @@ mongoose.connect('mongodb://' + dbConfig.username
 + ':' + dbConfig.port + '/' + dbConfig.database
 + '?authSource=admin');
 
-startServer();
+require('./server');
