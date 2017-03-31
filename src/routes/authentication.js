@@ -1,12 +1,11 @@
 const router = require('express').Router;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
 let User = require('../models/users');
 let logging = require('../logging');
+
 let apiLogger = logging.apiLogger;
 let formatApiLogMessage = logging.formatApiLogMessage;
-
 let redisClient;
 
 function setRedisClient(client) {
@@ -16,6 +15,7 @@ function setRedisClient(client) {
 function authenticationGuard(req, res, next) {
   try {
     let cookieToken = jwt.verify(req.session.token, process.env.COOKIE_TOKEN_SECRET);
+    apiLogger.info('Successfully parsed cookie token');
     let headerToken = jwt.verify(req.headers['credit-cards-authentication'], process.env.TOKEN_SECRET);
 
     if(headerToken.userName === cookieToken.userName && headerToken.role === cookieToken.role
@@ -26,7 +26,7 @@ function authenticationGuard(req, res, next) {
       next();
     }
     else {
-      apiLogger.info(formatApiLogMessage(`Invalid tokens - content does not match`, req));
+      apiLogger.info(formatApiLogMessage(`Invalid tokens - content does not match. HeaderToken: ${headerToken}, CookieToken: ${cookieToken}`, req));
       return res.status(401).send({ message: 'Invalid token provided.' });
     }
   }
