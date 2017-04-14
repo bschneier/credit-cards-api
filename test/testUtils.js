@@ -28,7 +28,8 @@ const data = {
   userName: 'testUser',
   firstName: 'test',
   lastName: 'user',
-  email: 'test@user.com'
+  email: 'test@user.com',
+  tokenId: '123456789'
 };
 
 module.exports = { login, data };

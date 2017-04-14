@@ -11,7 +11,9 @@ var userSchema = mongoose.Schema({ // eslint-disable-line new-cap
   groupId: mongoose.Schema.Types.ObjectId,
   email: String,
   role: String,
-  tokens: [String],
+  tokens: [{
+    expiration: Date
+  }],
   lockoutExpiration: Date,
   password: String
 });

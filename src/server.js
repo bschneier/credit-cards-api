@@ -1,10 +1,11 @@
-let express = require('express');
-let bodyParser = require('body-parser');
-let routes = require('./routes/all');
-let apiLogger = require('./logging').apiLogger;
-let config = require('config');
-let cookieSession = require('cookie-session');
-let srs = require('secure-random-string');
+const express = require('express');
+const bodyParser = require('body-parser');
+const routes = require('./routes/all');
+const apiLogger = require('./logging').apiLogger;
+const config = require('config');
+const cookieSession = require('cookie-session');
+const srs = require('secure-random-string');
+const cookieParser = require('cookie-parser');
 
 process.env.TOKEN_SECRET = srs();
 process.env.COOKIE_TOKEN_SECRET = srs();
@@ -13,16 +14,21 @@ process.env.COOKIE_TOKEN_SECRET = srs();
 let app = express();
 app.disable('x-powered-by');
 app.use(bodyParser.json());
+/*
+  Keeping the cookie secret static here instead of dynamically generating new secret with srs()
+  so that tokens will continue to work if API is restarted within expiration period
+*/
+app.use(cookieParser(config.get('rememberMe.cookieSecret')));
 // TODO: set 'secure: true' cookie option once SSL is implemented
 app.use(cookieSession({
-  name: 'credit-cards-session',
+  name: config.get('session.cookieName'),
   secret: srs(),
-  maxAge: 20 * 60 * 1000,
+  maxAge: config.get('session.expirationMinutes') * 60 * 1000,
   httpOnly: true
 }));
 app.use('/', routes);
 
-let serverPort = config.get('serverConfig.port');
+let serverPort = config.get('server.port');
 app.listen(serverPort, () => {
   apiLogger.info(`Server has started and is listening at port ${serverPort}.`);
 });

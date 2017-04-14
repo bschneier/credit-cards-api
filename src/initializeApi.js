@@ -4,7 +4,7 @@ const redis = require('redis');
 const setRedisClient = require('./routes/authentication').setRedisClient;
 
 // create redis client
-const redisConfig = config.get('redisConfig');
+const redisConfig = config.get('redis');
 const redisClient = redis.createClient(redisConfig.port, redisConfig.host);
 setRedisClient(redisClient);
 
@@ -13,7 +13,7 @@ setRedisClient(redisClient);
 mongoose.Promise = Promise;
 
 // connect to mongoDB
-const dbConfig = config.get('dbConfig');
+const dbConfig = config.get('database');
 mongoose.connect('mongodb://' + dbConfig.username
 + ':' + dbConfig.password + '@' + dbConfig.host
 + ':' + dbConfig.port + '/' + dbConfig.database

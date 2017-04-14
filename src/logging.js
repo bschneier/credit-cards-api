@@ -1,10 +1,10 @@
-let winston = require('winston');
-let fs = require('fs');
-let DailyRollingFile = require('winston-daily-rotate-file');
-let config = require( 'config');
+const winston = require('winston');
+const fs = require('fs');
+const DailyRollingFile = require('winston-daily-rotate-file');
+const config = require( 'config');
 
-const apiLogConfig = config.get('apiLoggingConfig');
-const frontEndLogConfig = config.get('frontEndLoggingConfig');
+const apiLogConfig = config.get('apiLogging');
+const frontEndLogConfig = config.get('frontEndLogging');
 const logDirectories = [apiLogConfig.directory, frontEndLogConfig.directory];
 
 // Create the log directories if they do not exist
