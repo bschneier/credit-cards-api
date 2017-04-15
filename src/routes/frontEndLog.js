@@ -1,5 +1,7 @@
-let router = require('express').Router;
-let logging = require('../logging');
+const router = require('express').Router;
+const logging = require('../logging');
+const CONSTANTS = require('../constants');
+
 let frontEndLogger = logging.frontEndLogger;
 let formatFrontEndLogMessage = logging.formatFrontEndLogMessage;
 
@@ -15,7 +17,8 @@ function writeFrontEndLogMessage(req, res) {
       frontEndLogger.info(formatFrontEndLogMessage(req));
       break;
   }
-  res.json({info: 'log entry created successfully'});
+
+  return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS });
 }
 
 let frontEndLogRoutes = router();

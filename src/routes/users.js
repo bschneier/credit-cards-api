@@ -1,17 +1,19 @@
-let router = require('express').Router;
-let User = require('../models/users');
-let Group = require('../models/groups');
-let logging = require('../logging');
-let apiLogger = logging.apiLogger;
-let formatApiLogMessage = logging.formatApiLogMessage;
-let bcrypt = require('bcryptjs');
+const router = require('express').Router;
+const bcrypt = require('bcryptjs');
+const User = require('../models/users');
+const Group = require('../models/groups');
+const logging = require('../logging');
+const CONSTANTS = require('../constants');
+
+const apiLogger = logging.apiLogger;
+const formatApiLogMessage = logging.formatApiLogMessage;
 
 // new user registration
 function createUserByRegistrationCode(req, res) {
   Group.findOne({registrationCode: req.params.registrationCode}, '_id', (err, group) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user group with code '${req.params.registrationCode}': ${err}`, req));
-      return res.json({info: 'error during find user group'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     if (group) {
@@ -19,15 +21,19 @@ function createUserByRegistrationCode(req, res) {
       new User(user).save((err, newUser) => {
         if (err) {
           apiLogger.error(formatApiLogMessage(`Error creating user: ${err}`, req));
-          return res.json({info: 'error during user creation'});
+          return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
         }
+
         apiLogger.info(formatApiLogMessage(`user ${newUser._id} created successfully`, req));
-        res.json({info: 'user created successfully'});
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS });
       });
     }
     else {
       apiLogger.info(formatApiLogMessage(`Could not find user group with code '${req.params.registrationCode}'`, req));
-      res.json({info: 'user group not found'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+        message: CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND,
+        errors: [ CONSTANTS.ERRORS.DATA_NOT_FOUND ]
+      });
     }
   });
 }
@@ -37,51 +43,66 @@ function getAuthenticatedUser(req, res) {
   User.findOne({userName: req.userName}, 'firstName lastName userName email', (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.userName}': ${err}`, req));
-      return res.json({message: 'error during find user'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     if (user) {
       apiLogger.info(formatApiLogMessage(`user ${req.userName} found successfully`, req));
-      res.json({message: 'user found successfully', user: user});
-    } else {
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS, user: user});
+    }
+    else {
       apiLogger.info(formatApiLogMessage(`Could not find user '${req.userName}'`, req));
-      res.json({message: 'user not found'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+        message: CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND,
+        errors: [ CONSTANTS.ERRORS.DATA_NOT_FOUND ]
+      });
     }
   });
 }
 
 // update user profile data
 function updateAuthenticatedUser(req, res) {
-  // find user by username provided in auth token, so that regular
-  // users can only update their own data
+  /*
+    find user by username provided in auth token, so that regular
+    users can only update their own data
+  */
   User.findOne({userName: req.userName}, (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.userName}': ${err}`, req));
-      return res.json({info: 'error during find user'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     if (user) {
       if(req.body.password) {
         if(!bcrypt.compareSync(req.body.currentPassword, user.password)) {
           apiLogger.info(formatApiLogMessage(`Invalid current password provided for password update for ${req.userName}`, req));
-          return res.json({info: 'invalid password provided'});
+          return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+        message: CONSTANTS.RESPONSE_MESSAGES.INVALID_PASSWORD,
+        errors: [ CONSTANTS.ERRORS.INVALID_PASSWORD ]
+      });
         }
         else {
           delete req.body.currentPassword;
         }
       }
+
       Object.assign(user, req.body);
       user.save((err) => {
         if (err) {
           apiLogger.error(formatApiLogMessage(`Error updating user '${req.params.id}': ${err}`, req));
-          return res.json({info: 'error during user update'});
+          return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
         }
+
         apiLogger.info(formatApiLogMessage(`user ${req.params.id} updated successfully`, req));
-        res.json({info: 'user updated successfully'});
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS });
       });
-    } else {
+    }
+    else {
       apiLogger.info(formatApiLogMessage(`Could not find user '${req.params.id}'`, req));
-      res.json({info: 'user not found'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+        message: CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND,
+        errors: [ CONSTANTS.ERRORS.DATA_NOT_FOUND ]
+      });
     }
   });
 }
@@ -91,15 +112,19 @@ function getUserById(req, res) {
   User.findById(req.params.id, '-password', (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
-      return res.json({info: 'error during find user'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     if (user) {
       apiLogger.info(formatApiLogMessage(`user ${req.params.id} found successfully`, req));
-      res.json({info: 'user found successfully', user: user});
-    } else {
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS, user: user});
+    }
+    else {
       apiLogger.info(formatApiLogMessage(`Could not find user '${req.params.id}'`, req));
-      res.json({info: 'user not found'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+        message: CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND,
+        errors: [ CONSTANTS.ERRORS.DATA_NOT_FOUND ]
+      });
     }
   });
 }
@@ -109,11 +134,11 @@ function getUsers(req, res) {
   User.find(req.query, '-password', (err, users) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding users for query '${req.query}': ${err}`, req));
-      return res.json({info: 'error during find user'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     apiLogger.info(formatApiLogMessage(`User query for ${req.query} returned ${users.length} results`, req));
-    res.json({info: `found ${users.length} users`, users: users});
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS, users: users});
   });
 }
 
@@ -122,7 +147,7 @@ function updateUser(req, res) {
   User.findById(req.params.id, (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${req.params.id}': ${err}`, req));
-      return res.json({info: 'error during find user'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     if (user) {
@@ -130,14 +155,19 @@ function updateUser(req, res) {
       user.save((err) => {
         if (err) {
           apiLogger.error(formatApiLogMessage(`Error updating user '${req.params.id}': ${err}`, req));
-          return res.json({info: 'error during user update'});
+          return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
         }
+
         apiLogger.info(formatApiLogMessage(`user ${req.params.id} updated successfully`, req));
-        res.json({info: 'user updated successfully'});
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS });
       });
-    } else {
+    }
+    else {
       apiLogger.info(formatApiLogMessage(`Could not find user '${req.params.id}'`, req));
-      res.json({info: 'user not found'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+        message: CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND,
+        errors: [ CONSTANTS.ERRORS.DATA_NOT_FOUND ]
+      });
     }
   });
 }
@@ -148,10 +178,11 @@ function createUser(req, res) {
   user.save((err, newUser) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error creating user: ${err}`, req));
-      return res.json({info: 'error during user creation'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
+
     apiLogger.info(formatApiLogMessage(`user ${newUser._id} created successfully`, req));
-    res.json({info: 'user created successfully'});
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS });
   });
 }
 
@@ -160,11 +191,11 @@ function deleteUser(req, res) {
   User.findByIdAndRemove(req.params.id, (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error deleting user '${req.params.id}': ${err}`, req));
-      return res.json({info: 'error during user deletion'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     apiLogger.info(formatApiLogMessage(`user ${req.params.id} deleted successfully`, req));
-    res.json({info: 'user deleted successfully'});
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS });
   });
 }
 

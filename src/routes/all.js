@@ -1,9 +1,10 @@
-let router = require('express').Router;
-let users = require('./users');
-let authentication = require('./authentication');
-let frontEndLogRoutes = require('./frontEndLog');
-let groupRoutes = require('./groups');
-let creditCards = require('./creditCards');
+const router = require('express').Router;
+const users = require('./users');
+const authentication = require('./authentication');
+const guards = require('./guards');
+const frontEndLogRoutes = require('./frontEndLog');
+const groupRoutes = require('./groups');
+const creditCards = require('./creditCards');
 
 let routes = router();
 
@@ -13,12 +14,12 @@ routes.use('/log', frontEndLogRoutes);
 routes.use('/users', users.userUnauthenticatedRoutes);
 
 // authenticated routes
-routes.use(authentication.authenticationGuard);
+routes.use(guards.authenticationGuard);
 routes.use('/users', users.userAuthenticatedRoutes);
 routes.use('/credit-cards', creditCards.creditCardAuthenticatedRoutes);
 
 // admin routes
-routes.use(authentication.adminGuard);
+routes.use(guards.adminGuard);
 routes.use('/users', users.userAdminRoutes);
 routes.use('/groups', groupRoutes);
 routes.use('/credit-cards', creditCards.creditCardAdminRoutes);

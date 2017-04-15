@@ -5,6 +5,7 @@ const sinonChai = require('sinon-chai');
 let User = require('../src/models/users');
 const server = require('../src/server');
 const utils = require('./testUtils');
+const CONSTANTS = require('../src/constants');
 
 chai.should();
 chai.use(chaiHttp);
@@ -32,8 +33,8 @@ describe('GET /profile', () => {
       let agent = utils.login(server, 'user', (agent, token) => {
         setUpMockUser();
         agent.get('/users/profile').set('credit-cards-authentication', token).end((err, res) => {
-          res.should.have.status(200);
-          res.body.message.should.equal('user found successfully');
+          res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.OK);
+          res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.SUCCESS);
           done();
         });
       });
@@ -53,15 +54,16 @@ describe('GET /profile', () => {
     });
   });
 
-  // TODO: finalize this behavior
   describe('When user is not found', () => {
-    it('should return error message', (done) => {
+    it('should return OK status with error message, and error object', (done) => {
+      let expectedErrors = [ CONSTANTS.ERRORS.DATA_NOT_FOUND ];
       let agent = utils.login(server, 'user', (agent, token) => {
         sinon.stub(User, 'findOne');
         User.findOne.yields(null, null);
         agent.get('/users/profile').set('credit-cards-authentication', token).end((err, res) => {
-            res.should.have.status(200);
-            res.body.message.should.equal('user not found');
+            res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.OK);
+            res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND);
+            res.body.errors.should.deep.equal(expectedErrors);
             done();
           });
       });

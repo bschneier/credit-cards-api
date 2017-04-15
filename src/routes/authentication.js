@@ -5,6 +5,7 @@ const moment = require('moment');
 const config = require('config');
 const User = require('../models/users');
 const logging = require('../logging');
+const CONSTANTS = require('../constants');
 
 const apiLogger = logging.apiLogger;
 const formatApiLogMessage = logging.formatApiLogMessage;
@@ -15,58 +16,27 @@ function setRedisClient(client) {
   redisClient = client;
 }
 
-function authenticationGuard(req, res, next) {
-  try {
-    let cookieToken = jwt.verify(req.session.token, process.env.COOKIE_TOKEN_SECRET);
-    apiLogger.info('Successfully parsed cookie token');
-    let headerToken = jwt.verify(req.headers['credit-cards-authentication'], process.env.TOKEN_SECRET);
-
-    if(headerToken.userName === cookieToken.userName && headerToken.role === cookieToken.role
-      && headerToken.groupId === cookieToken.groupId) {
-      req.role = headerToken.role;
-      req.groupId = headerToken.groupId;
-      req.userName = headerToken.userName;
-      next();
-    }
-    else {
-      apiLogger.info(formatApiLogMessage(`Invalid tokens - content does not match. HeaderToken: ${headerToken}, CookieToken: ${cookieToken}`, req));
-      return res.status(401).send({ message: 'Invalid token provided.' });
-    }
-  }
-  catch (err) {
-    apiLogger.info(formatApiLogMessage(`Invalid token - error parsing cookie or header token: ${err}`, req));
-    return res.status(401).send({ message: 'Invalid token provided.' });
-  }
-}
-
-function adminGuard(req, res, next) {
-  if(req.role !== 'admin') {
-    apiLogger.info(formatApiLogMessage(`Unauthorized request`, req));
-    return res.status(403).send({ message: 'Not authorized.' });
-  }
-  else {
-    next();
-  }
-}
-
 function authenticate(req, res) {
   // validate request for expected parameters
   if(!req.body.hasOwnProperty('userName') || !req.body.hasOwnProperty('password')) {
     apiLogger.info(formatApiLogMessage('invalid authentication request: ' + JSON.stringify(req.body), req));
-    res.status(400).send({ message: 'invalid request' });
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_REQUEST).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_REQUEST });
   }
   else {
     User.findOne({ userName : req.body.userName }, '-email -lastName', (err, user) => {
       if (err) {
         apiLogger.error(formatApiLogMessage(`Authentication request failed - error finding user '${req.body.userName}': ${err}`, req));
-        res.json({ message: 'error during find user', error: err });
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
       }
 
       if (user) {
         // check if user account is locked
         if(user.lockoutExpiration > new Date()) {
           apiLogger.info(formatApiLogMessage(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
-          res.json({ message: 'user account is locked out' });
+          return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({
+            message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_FAILURE,
+            errors: [ CONSTANTS.ERRORS.USER_LOCKED_OUT ]
+          });
         }
         else {
           // validate password
@@ -102,18 +72,22 @@ function authenticate(req, res) {
                   }
                 });
 
-                res.json({ message: 'user account is locked out' });
+                return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({
+                  message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS,
+                  errors: [CONSTANTS.ERRORS.USER_LOCKED_OUT]
+                });
               }
               else {
                 redisClient.setex('login-failures:' + user._id, 1200, ++failures);
-                res.json({ message: 'login failed' });
+                return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS });
               }
             });
           }
         }
-      } else {
+      }
+      else {
         apiLogger.info(formatApiLogMessage(`Login failed - could not find user '${req.body.userName}'`, req));
-        res.json({ message: 'login failed' });
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS });
       }
     });
   }
@@ -125,14 +99,17 @@ function getNewSessionForRememberedUser(req, res) {
     User.findOne({ tokens : { $elemMatch : { _id : rememberMeToken, expiration : { $gt : new Date() } } } },'-email -lastName', (err, user) => {
       if (err) {
         apiLogger.error(formatApiLogMessage(`Error finding user by rememberMe token '${rememberMeToken}': ${err}`, req));
-        return res.json({ message: 'error during find user', error: err });
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
       }
 
       if (user) {
         // check if user account is locked
         if(user.lockoutExpiration > new Date()) {
           apiLogger.info(formatApiLogMessage(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
-          return res.json({ message: 'user account is locked out' });
+          return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({
+            message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_FAILURE,
+            errors: [ CONSTANTS.ERRORS.USER_LOCKED_OUT ]
+          });
         }
         else {
           // generate new session for user
@@ -158,22 +135,23 @@ function getNewSessionForRememberedUser(req, res) {
       }
       else {
         apiLogger.info(formatApiLogMessage(`Could not find user with rememberMe token '${rememberMeToken}'`, req));
-        return res.status(401).send({ message: 'Invalid token provided.' });
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS });
       }
     });
   }
   else {
     apiLogger.info(formatApiLogMessage(`No rememberMe token provided.`, req));
-    return res.status(401).send({ message: 'Invalid token provided.' });
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS });
   }
 }
 
 function generateAuthTokens(user) {
+  let sessionExpirationMinutes = config.get('session.expirationMinutes');
   const sessionToken = jwt.sign({ userName: user.userName, role: user.role, groupId: user.groupId }, process.env.TOKEN_SECRET, {
-    expiresIn: 1200
+    expiresIn: sessionExpirationMinutes * 60
   });
   const cookieToken = jwt.sign({ userName: user.userName, role: user.role, groupId: user.groupId, cookie: true }, process.env.COOKIE_TOKEN_SECRET, {
-    expiresIn: 1200
+    expiresIn: sessionExpirationMinutes * 60
   });
   return { sessionToken: sessionToken, cookieToken: cookieToken };
 }
@@ -212,8 +190,8 @@ function sendLoginSuccessResponse(user, res, token) {
   user.__v = undefined;
   user.lockoutExpiration = undefined;
 
-  res.json({
-    message: 'login success',
+  return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+    message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_SUCCESS,
     user : user,
     token : token
   });
@@ -223,4 +201,4 @@ let routes = router();
 routes.post('', authenticate);
 routes.get('', getNewSessionForRememberedUser);
 
-module.exports = { routes, authenticationGuard, adminGuard, setRedisClient };
+module.exports = { routes, setRedisClient };

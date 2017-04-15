@@ -1,7 +1,9 @@
-let router = require('express').Router;
-let User = require('../models/users');
-let Group = require('../models/groups');
-let logging = require('../logging');
+const router = require('express').Router;
+const User = require('../models/users');
+const Group = require('../models/groups');
+const logging = require('../logging');
+const CONSTANTS = require('../constants');
+
 let apiLogger = logging.apiLogger;
 let formatApiLogMessage = logging.formatApiLogMessage;
 
@@ -10,11 +12,11 @@ function getGroups(req, res) {
   Group.find(req.query, (err, groups) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user groups for query '${req.query}': ${err}`, req));
-      return res.json({info: 'error during find user groups'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     apiLogger.info(formatApiLogMessage(`User group query for ${req.query} returned ${groups.length} results`, req));
-    res.json({info: `found ${groups.length} user groups`, groups: groups});
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS, groups: groups});
   });
 }
 
@@ -23,7 +25,7 @@ function updateGroup(req, res) {
   Group.findById(req.params.id, (err, group) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user group '${req.params.id}': ${err}`, req));
-      return res.json({info: 'error during find user group'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     if (group) {
@@ -31,14 +33,19 @@ function updateGroup(req, res) {
       group.save((err) => {
         if (err) {
           apiLogger.error(formatApiLogMessage(`Error updating user group '${req.params.id}': ${err}`, req));
-          return res.json({info: 'error during user group update'});
+          return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
         }
+
         apiLogger.info(formatApiLogMessage(`user group ${req.params.id} updated successfully`, req));
-        res.json({info: 'user group updated successfully'});
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS});
       });
-    } else {
+    }
+    else {
       apiLogger.info(formatApiLogMessage(`Could not find user group '${req.params.id}'`, req));
-      res.json({info: 'user group not found'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+        message: CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND,
+        errors: [ CONSTANTS.ERRORS.DATA_NOT_FOUND ]
+      });
     }
   });
 }
@@ -49,10 +56,11 @@ function createGroup(req, res) {
   group.save((err, newGroup) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error creating user group: ${err}`, req));
-      return res.json({info: 'error during user group creation'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
+
     apiLogger.info(formatApiLogMessage(`user group ${newGroup._id} created successfully`, req));
-    res.json({info: 'user group created successfully'});
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS});
   });
 }
 
@@ -62,19 +70,19 @@ function deleteGroup(req, res) {
   User.find({groupId: req.params.id}, '_id', (err, users) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding users in group '${req.params.id}': ${err}`, req));
-      return res.json({info: 'error during user group deletion'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     apiLogger.info(formatApiLogMessage(`User query for group ${req.params.id} returned ${users.length} results`, req));
 
     users.forEach((user) => {
       User.findByIdAndRemove(user._id, (err, user) => {
-      if (err) {
-        apiLogger.error(formatApiLogMessage(`Error deleting user '${user._id}': ${err}`, req));
-        return res.json({info: 'error during user group deletion'});
-      }
+        if (err) {
+          apiLogger.error(formatApiLogMessage(`Error deleting user '${user._id}': ${err}`, req));
+          return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
+        }
 
-      apiLogger.info(formatApiLogMessage(`user ${req.params.id} deleted successfully`, req));
+        apiLogger.info(formatApiLogMessage(`user ${req.params.id} deleted successfully`, req));
       });
     });
   });
@@ -83,11 +91,11 @@ function deleteGroup(req, res) {
   Group.findByIdAndRemove(req.params.id, (err, group) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error deleting user group '${req.params.id}': ${err}`, req));
-      return res.json({info: 'error during user group deletion'});
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     apiLogger.info(formatApiLogMessage(`user group ${req.params.id} deleted successfully`, req));
-    res.json({info: 'user group deleted successfully'});
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS});
   });
 }
 

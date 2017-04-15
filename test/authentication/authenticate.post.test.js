@@ -10,6 +10,7 @@ let User = require('../../src/models/users');
 const setTestRedisClient = require('../setTestRedisClient');
 const server = require('../../src/server');
 const utils = require('../testUtils');
+const CONSTANTS = require('../../src/constants');
 
 chai.should();
 chai.use(chaiHttp);
@@ -75,8 +76,8 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
 
     it('Should return success status and message', (done) => {
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
-        res.should.have.status(200);
-        res.body.message.should.equal('login success');
+        res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.OK);
+        res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.LOGIN_SUCCESS);
         done();
       });
     });
@@ -249,7 +250,7 @@ function getPastToken() {
 }
 
 function invalidRequestAssertions(res) {
-  res.should.have.status(400);
-  res.body.message.should.equal('invalid request');
+  res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_REQUEST);
+  res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.INVALID_REQUEST);
   User.findOne.should.not.have.been.called;
 }
