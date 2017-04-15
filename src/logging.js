@@ -58,6 +58,7 @@ function formatApiLogMessage(message, req) {
   let ip = req.connection.remoteAddress || req.socket.remoteAddress;
   return {
     message: message,
+    request_id: req.id,
     ip_address: ip.split(':')[3],
     url_requested: req.method + ' ' + req.protocol + '://' + req.hostname + req.originalUrl
   };
@@ -71,6 +72,7 @@ function formatFrontEndLogMessage(req) {
     url: req.body.url,
     stackTrace: req.body.stackTrace,
     message: req.body.message,
+    request_id: req.id,
     ipAddress: ip.split(':')[3]
   };
 }
