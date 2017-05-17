@@ -6,6 +6,7 @@ node_modules
 
 # logs directory
 logs
+*.log
 
 # config
 config
