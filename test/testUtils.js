@@ -17,7 +17,7 @@ function login(server, role, action) {
 
   let request = { userName: userName, password: password, rememberMe: false };
 
-  var agent = chai.request.agent(server);
+  let agent = chai.request.agent(server);
   agent.post('/authenticate').send(request).end((err, res) => {
     User.findOne.restore();
     return action(agent, res.body.token);

@@ -16,5 +16,6 @@ chai.use(sinonChai);
 
 // TODO: implement this test
 describe('GET /authenticate', () => {
+  // TODO: use cookieParser.signedCookie() to decrypt cookie token
   // TODO: test that locked out users cannot get session with valid rememberMe token
 });
