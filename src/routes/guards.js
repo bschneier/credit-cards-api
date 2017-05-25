@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const logging = require('../logging');
 const CONSTANTS = require('../constants');
+const config = require('config');
 
 const apiLogger = logging.apiLogger;
 const formatApiLogMessage = logging.formatApiLogMessage;
@@ -9,7 +10,7 @@ function authenticationGuard(req, res, next) {
   try {
     let cookieToken = jwt.verify(req.session.token, process.env.COOKIE_TOKEN_SECRET);
     apiLogger.info('Successfully parsed cookie token');
-    let headerToken = jwt.verify(req.headers['credit-cards-authentication'], process.env.TOKEN_SECRET);
+    let headerToken = jwt.verify(req.headers[config.get('authenticationHeader')], process.env.TOKEN_SECRET);
 
     if(headerToken.userName === cookieToken.userName && headerToken.role === cookieToken.role
       && headerToken.groupId === cookieToken.groupId) {

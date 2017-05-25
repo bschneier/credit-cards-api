@@ -1,5 +1,6 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
+const config = require('config');
 const sinon = require('sinon');
 const sinonChai = require('sinon-chai');
 let User = require('../src/models/users');
@@ -32,7 +33,7 @@ describe('GET /profile', () => {
     it('should return success status and message', (done) => {
       let agent = utils.login(server, 'user', (agent, token) => {
         setUpMockUser();
-        agent.get('/users/profile').set('credit-cards-authentication', token).end((err, res) => {
+        agent.get('/users/profile').set(config.get('authenticationHeader'), token).end((err, res) => {
           res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.OK);
           res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.SUCCESS);
           done();
@@ -43,7 +44,7 @@ describe('GET /profile', () => {
     it('should return user info', (done) => {
       let agent = utils.login(server, 'user', (agent, token) => {
         setUpMockUser();
-        agent.get('/users/profile').set('credit-cards-authentication', token).end((err, res) => {
+        agent.get('/users/profile').set(config.get('authenticationHeader'), token).end((err, res) => {
           res.body.user.userName.should.equal(utils.data.userName);
           res.body.user.firstName.should.equal(utils.data.firstName);
           res.body.user.lastName.should.equal(utils.data.lastName);
@@ -60,7 +61,7 @@ describe('GET /profile', () => {
       let agent = utils.login(server, 'user', (agent, token) => {
         sinon.stub(User, 'findOne');
         User.findOne.yields(null, null);
-        agent.get('/users/profile').set('credit-cards-authentication', token).end((err, res) => {
+        agent.get('/users/profile').set(config.get('authenticationHeader'), token).end((err, res) => {
             res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.OK);
             res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND);
             res.body.errors.should.deep.equal(expectedErrors);
