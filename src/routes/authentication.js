@@ -175,7 +175,7 @@ function setNewRememberMeToken(user, req, res, resolve) {
         return token.expiration.getTime() === expiration.getTime();
       });
       // TODO: set secure attribute on this cookie once SSL implemented
-      res.cookie(REMEMBER_ME_COOKIE_NAME, newToken._id, { expires: expiration, httpOnly: true, signed: true });
+      res.cookie(REMEMBER_ME_COOKIE_NAME, newToken._id, { expires: expiration, httpOnly: true, signed: true, domain: config.get('cookieDomain') });
       apiLogger.info(formatApiLogMessage(`Set new rememberMe token for user '${user.userName}'.`, req));
     }
 

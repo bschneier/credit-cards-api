@@ -26,6 +26,7 @@ app.use(cookieSession({
   name: config.get('session.cookieName'),
   secret: srs(),
   maxAge: config.get('session.expirationMinutes') * 60 * 1000,
+  domain: config.get('cookieDomain'),
   httpOnly: true
 }));
 app.use('/', routes);
