@@ -10,6 +10,7 @@ const setTestRedisClient = require('../setTestRedisClient');
 const server = require('../../src/server');
 const utils = require('../testUtils');
 const CONSTANTS = require('../../src/constants');
+const testUtils = require('../testUtils');
 
 chai.should();
 chai.use(chaiHttp);
@@ -36,7 +37,7 @@ describe('POST /authenticate', () => {
     });
 
     it('should have username', (done) => {
-      let request = { password: 'testPassword' };
+      request = { password: 'testPassword' };
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
         invalidRequestAssertions(res);
         done();
@@ -44,7 +45,7 @@ describe('POST /authenticate', () => {
     });
 
     it('should have password', (done) => {
-      let request = { userName: 'testUsername' };
+      request = { userName: 'testUsername' };
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
         invalidRequestAssertions(res);
         done();
@@ -65,7 +66,7 @@ describe('POST /authenticate', () => {
 });
 
 function runSuccessfulLoginTests(rememberMe, additionalTests) {
-  let conditionalText = rememberMe ? '' : 'out';
+  const conditionalText = rememberMe ? '' : 'out';
   describe('With' + conditionalText + ' rememberMe flag', () => {
     beforeEach(() => {
       successfulLoginSetup(rememberMe)
@@ -104,30 +105,26 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
       });
     });
 
-    it('Should set session cookie as httponly with correct expiration', (done) => {
+    it('Should set session cookie as httponly with correct expiration and domain', (done) => {
       const sessionCookieName = config.get('session.cookieName');
+      const sessionCookieDomain = config.get('cookieDomain');
       const expectedExpirationPeriod = config.get('session.expirationMinutes');
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
-        res.should.have.cookie(sessionCookieName);
-        let resDate = Date.parse(res.headers.date);
-        res.headers['set-cookie'].forEach((value) => {
-          let cookieValues = value.split('; ');
-          let nameAndValue = cookieValues[0].split('=');
-          if(nameAndValue[0].indexOf(sessionCookieName) !== -1) {
-            let cookieDate = Date.parse(cookieValues[2].replace('expires=', ''));
-            ((cookieDate - resDate) / 1000).should.be.closeTo(expectedExpirationPeriod * 60, 1);
-            cookieValues[3].toLowerCase().should.equal('httponly');
-            // validate that cookie value is not stored in plain text
-            nameAndValue[1].indexOf('userName').should.equal(-1);
-          }
-        });
+        const resDate = Date.parse(res.headers.date);
+        const sessionCookie = testUtils.cookieHelpers.getCookie(res.headers['set-cookie'], sessionCookieName);
+        testUtils.cookieHelpers.getAttribute(sessionCookie, 'domain').should.equal(sessionCookieDomain);
+        testUtils.cookieHelpers.isHttpOnly(sessionCookie).should.equal(true);
+        const cookieDate = Date.parse(testUtils.cookieHelpers.getAttribute(sessionCookie, 'expires'));
+        ((cookieDate - resDate) / 1000).should.be.closeTo(expectedExpirationPeriod * 60, 1);
+        // validate that cookie value is not stored in plain text
+        testUtils.cookieHelpers.valueDoesNotContainString(sessionCookie, 'userName').should.equal(true);
         done();
       });
     });
 
     it('Should set token in header', (done) => {
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
-        let headerToken = jwt.verify(res.body.token, process.env.TOKEN_SECRET);
+        const headerToken = jwt.verify(res.body.token, process.env.TOKEN_SECRET);
         (headerToken.exp - headerToken.iat).should.equal(1200);
         headerToken.userName.should.equal(userName);
         headerToken.role.should.equal(role);
@@ -143,10 +140,11 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
 function rememberMeTests() {
   let userAfterTokenUpdate;
   const rememberMeExpirationPeriod = config.get('rememberMe.expirationDays');
-  let expectedRememberMeExpirationDate;
+  let expectedExpiration;
+  let clock;
 
   beforeEach(() => {
-    let currentDate = new Date();
+    const currentDate = new Date();
     clock = sinon.useFakeTimers(currentDate.getTime());
     expectedExpiration = new Date(new Date().getTime() +
         (rememberMeExpirationPeriod*24*60*60*1000));
@@ -168,7 +166,7 @@ function rememberMeTests() {
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
         User.findByIdAndUpdate.should.have.been.calledOnce;
         User.findByIdAndUpdate.should.have.been.calledWith(userId, sinon.match.object, { new: true }, sinon.match.func);
-        let updatedTokens = User.findByIdAndUpdate.getCall(0).args[1].tokens;
+        const updatedTokens = User.findByIdAndUpdate.getCall(0).args[1].tokens;
         updatedTokens.length.should.equal(1);
         updatedTokens[updatedTokens.length - 1].expiration.getTime().should.equal(expectedExpiration.getTime());
         done();
@@ -182,7 +180,7 @@ function rememberMeTests() {
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
         User.findByIdAndUpdate.should.have.been.calledOnce;
         User.findByIdAndUpdate.should.have.been.calledWith(userId, sinon.match.object, { new: true }, sinon.match.func);
-        let updatedTokens = User.findByIdAndUpdate.getCall(0).args[1].tokens;
+        const updatedTokens = User.findByIdAndUpdate.getCall(0).args[1].tokens;
         updatedTokens.length.should.equal(existingTokens.length + 1);
         updatedTokens[updatedTokens.length - 1].expiration.getTime().should.equal(expectedExpiration.getTime());
         done();
@@ -190,21 +188,17 @@ function rememberMeTests() {
     });
   });
 
-  it('Should set rememberMe cookie as httponly with correct expiration date', (done) => {
+  it('Should set rememberMe cookie as httponly with correct expiration date and domain', (done) => {
     chai.request(server).post('/authenticate').send(request).end((err, res) => {
       const rememberMeCookieName = config.get('rememberMe.cookieName');
-      res.should.have.cookie(rememberMeCookieName);
-      res.headers['set-cookie'].forEach((value) => {
-        let cookieValues = value.split('; ');
-        let nameAndValue = cookieValues[0].split('=');
-        if(nameAndValue[0].indexOf(rememberMeCookieName) !== -1) {
-          let cookieDate = Date.parse(cookieValues[2].replace('expires=', ''));
-          ((cookieDate - new Date().getTime()) / 1000).should.be.closeTo(rememberMeExpirationPeriod*60*60*24, 1);
-          cookieValues[3].toLowerCase().should.equal('httponly');
-          // validate that cookie value is not stored in plain text
-          nameAndValue[1].indexOf('expiration').should.equal(-1);
-        }
-      });
+      const cookieDomain = config.get('cookieDomain');
+      const rememberMeCookie = testUtils.cookieHelpers.getCookie(res.headers['set-cookie'], rememberMeCookieName);
+      const cookieDate = Date.parse(testUtils.cookieHelpers.getAttribute(rememberMeCookie, 'expires'));
+      ((cookieDate - new Date().getTime()) / 1000).should.be.closeTo(rememberMeExpirationPeriod*24*60*60, 1);
+      testUtils.cookieHelpers.getAttribute(rememberMeCookie, 'domain').should.equal(cookieDomain);
+      testUtils.cookieHelpers.isHttpOnly(rememberMeCookie).should.equal(true);
+      // validate that cookie value is not stored in plain text
+      testUtils.cookieHelpers.valueDoesNotContainString(rememberMeCookie, 'expiration').should.equal(true);
       done();
     });
   });
