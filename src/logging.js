@@ -9,15 +9,20 @@ const logDirectories = [apiLogConfig.directory, frontEndLogConfig.directory];
 
 // Create the log directories if they do not exist
 for(let directory of logDirectories) {
-  fs.access(directory, fs.constants.F_OK | fs.constants.W_OK, (err) => {
-    if(err){
-      if (err.code === "ENOENT") {
-        fs.mkdirSync(directory);
-      } else {
-        throw err;
+  try {
+    fs.access(directory, fs.constants.F_OK | fs.constants.W_OK, (err) => {
+      if(err){
+        if (err.code === "ENOENT") {
+          fs.mkdirSync(directory);
+        } else {
+          throw err;
+        }
       }
-    }
-  });
+    });
+  }
+  catch(error) {
+    console.log(error); // eslint-disable-line no-console
+  }
 }
 
 const tsFormat = () => (new Date()).toLocaleTimeString();
