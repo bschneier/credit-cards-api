@@ -17,6 +17,6 @@ const dbConfig = config.get('database');
 mongoose.connect('mongodb://' + dbConfig.username
 + ':' + dbConfig.password + '@' + dbConfig.host
 + ':' + dbConfig.port + '/' + dbConfig.database
-+ '?authSource=admin');
++ '?authSource=admin', { useMongoClient: true });
 
 require('./server');

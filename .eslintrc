@@ -1,6 +1,5 @@
 {
   "root": true,
-  "plugins": ["import"],
   "env": {
     "es6": true,
     "node": true
@@ -126,18 +125,6 @@
     "strict": ["warn", "never"],
     "unicode-bom": ["warn", "never"],
     "use-isnan": "warn",
-    "valid-typeof": "warn",
-
-    // https://github.com/benmosher/eslint-plugin-import/blob/master/docs/rules/
-    "import/default": "warn",
-    "import/export": "warn",
-    "import/named": "warn",
-    "import/namespace": "warn",
-    "import/no-amd": "warn",
-    "import/no-duplicates": "warn",
-    "import/no-extraneous-dependencies": "warn",
-    "import/no-named-as-default": "warn",
-    "import/no-named-as-default-member": "warn",
-    "import/no-unresolved": ["warn", { "commonjs": true }]
+    "valid-typeof": "warn"
   }
 }
