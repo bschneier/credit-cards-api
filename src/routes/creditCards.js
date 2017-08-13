@@ -8,13 +8,13 @@ const formatApiLogMessage = logging.formatApiLogMessage;
 
 // get all credit cards in the user's group
 function getCreditCardsByGroup(req, res) {
-  CreditCard.find({groupId: req.groupId}, (err, creditCards) => {
+  CreditCard.find({groupId: res.locals.groupId}, (err, creditCards) => {
     if (err) {
-      apiLogger.error(formatApiLogMessage(`Error finding credit cards for group '${req.groupId}': ${err}`, req));
+      apiLogger.error(formatApiLogMessage(`Error finding credit cards for group '${res.locals.groupId}': ${err}`, req));
       return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
-    apiLogger.info(formatApiLogMessage(`Credit card query for group ${req.groupId} returned ${creditCards.length} results`, req));
+    apiLogger.info(formatApiLogMessage(`Credit card query for group ${res.locals.groupId} returned ${creditCards.length} results`, req));
     return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS, creditCards: creditCards });
   });
 }
@@ -29,12 +29,12 @@ function getCreditCardById(req, res) {
 
     if (creditCard) {
       // regular users can only view cards in their group
-      if(creditCard.groupId.toString() === req.groupId || req.role === 'admin') {
+      if(creditCard.groupId.toString() === res.locals.groupId || res.locals.role === 'admin') {
         apiLogger.info(formatApiLogMessage(`credit card ${req.params.id} found successfully`, req));
         return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS, creditCard: creditCard});
       }
       else {
-        apiLogger.info(formatApiLogMessage(`Unauthorized request - get credit card info for ${req.params.id} made by user ${req.userName}`, req));
+        apiLogger.info(formatApiLogMessage(`Unauthorized request - get credit card info for ${req.params.id} made by user ${res.locals.userName}`, req));
         return res.status(CONSTANTS.HTTP_STATUS_CODES.NOT_AUTHORIZED).send({ message: CONSTANTS.RESPONSE_MESSAGES.NOT_AUTHORIZED });
       }
     }
@@ -58,7 +58,7 @@ function updateCreditCard(req, res) {
 
     if (creditCard) {
       // regular users can only update cards in their group
-      if(creditCard.groupId.toString() === req.groupId || req.role === 'admin') {
+      if(creditCard.groupId.toString() === res.locals.groupId || res.locals.role === 'admin') {
         Object.assign(creditCard, req.body);
         creditCard.save((err) => {
           if (err) {
@@ -70,7 +70,7 @@ function updateCreditCard(req, res) {
         });
       }
       else {
-        apiLogger.info(formatApiLogMessage(`Unauthorized request - update credit card info for ${req.params.id} made by user ${req.userName}`, req));
+        apiLogger.info(formatApiLogMessage(`Unauthorized request - update credit card info for ${req.params.id} made by user ${res.locals.userName}`, req));
         return res.status(CONSTANTS.HTTP_STATUS_CODES.NOT_AUTHORIZED).send({ message: CONSTANTS.RESPONSE_MESSAGES.NOT_AUTHORIZED });
       }
     }
@@ -88,8 +88,8 @@ function updateCreditCard(req, res) {
 function createCreditCard(req, res) {
   let creditCardData = req.body;
   // regular users can only create credit cards in their own group
-  if(req.role !== 'admin') {
-    creditCardData = Object.assign(req.body, {groupId: req.groupId});
+  if(res.locals.role !== 'admin') {
+    creditCardData = Object.assign(req.body, {groupId: res.locals.groupId});
   }
   let creditCard = new CreditCard(creditCardData);
   creditCard.save((err, newCreditCard) => {
@@ -104,7 +104,7 @@ function createCreditCard(req, res) {
 
 // delete a credit card
 function deleteCreditCard(req, res) {
-  if(req.role !== 'admin') {
+  if(res.locals.role !== 'admin') {
     CreditCard.findById(req.params.id, (err, creditCard) => {
       if (err) {
         apiLogger.error(formatApiLogMessage(`Error finding credit card '${req.params.id}': ${err}`, req));
@@ -113,8 +113,8 @@ function deleteCreditCard(req, res) {
 
       if (creditCard) {
         // regular users can only delete cards in their group
-        if(creditCard.groupId.toString() !== req.groupId) {
-          apiLogger.info(formatApiLogMessage(`Unauthorized request - delete credit card info for ${req.params.id} made by user ${req.userName}`, req));
+        if(creditCard.groupId.toString() !== res.locals.groupId) {
+          apiLogger.info(formatApiLogMessage(`Unauthorized request - delete credit card info for ${req.params.id} made by user ${res.locals.userName}`, req));
           return res.status(CONSTANTS.HTTP_STATUS_CODES.NOT_AUTHORIZED).send({ message: CONSTANTS.RESPONSE_MESSAGES.NOT_AUTHORIZED });
         }
         else {

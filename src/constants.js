@@ -36,6 +36,7 @@ module.exports = {
     INVALID_REQUEST: 'invalid request',
     LOGIN_SUCCESS: 'user logged in successfully',
     LOGIN_FAILURE: 'user login failed',
+    LOGOUT_SUCCESS: 'user logged out successfully',
     NOT_AUTHORIZED: 'not authorized',
     SUCCESS: 'request processed successfully'
   }

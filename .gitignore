@@ -10,3 +10,6 @@ logs
 
 # config
 config
+
+# ignore this file for now, may add to source control in the future
+package-lock.json

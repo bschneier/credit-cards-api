@@ -93,6 +93,7 @@ function authenticate(req, res) {
   }
 }
 
+// TODO: refactor to be internal method and include rememberMe flag in tokens
 function getNewSessionForRememberedUser(req, res) {
   const rememberMeToken = req.signedCookies[REMEMBER_ME_COOKIE_NAME];
   if (rememberMeToken) {
@@ -146,13 +147,11 @@ function getNewSessionForRememberedUser(req, res) {
 }
 
 function generateAuthTokens(user) {
-  let sessionExpirationMinutes = config.get('session.expirationMinutes');
+  // keep jwt header tokens valid for 24 hours and rely on express session to expire cookie token with rolling window
   const sessionToken = jwt.sign({ userName: user.userName, role: user.role, groupId: user.groupId }, process.env.TOKEN_SECRET, {
-    expiresIn: sessionExpirationMinutes * 60
+    expiresIn: 60 * 60 * 24
   });
-  const cookieToken = jwt.sign({ userName: user.userName, role: user.role, groupId: user.groupId, cookie: true }, process.env.COOKIE_TOKEN_SECRET, {
-    expiresIn: sessionExpirationMinutes * 60
-  });
+  const cookieToken = { userName: user.userName, role: user.role, groupId: user.groupId };
   return { sessionToken: sessionToken, cookieToken: cookieToken };
 }
 
@@ -197,8 +196,53 @@ function sendLoginSuccessResponse(user, res, token) {
   });
 }
 
-let routes = router();
-routes.post('', authenticate);
-routes.get('', getNewSessionForRememberedUser);
+function logout(req, res){
+  const rememberMeToken = req.signedCookies[REMEMBER_ME_COOKIE_NAME];
+  if(rememberMeToken) {
+    User.findOne({ userName : res.locals.userName },'userName tokens', (err, user) => {
+      if (err) {
+        apiLogger.error(formatApiLogMessage(`Error finding user '${res.locals.userName}': ${err}`, req));
+      }
+      else if (user) {
+        const tokenIndex = user.tokens.indexOf(rememberMeToken);
+        if(tokenIndex !== -1) {
+          user.tokens.splice(tokenIndex, 1);
+          User.findByIdAndUpdate(user._id, { tokens: user.tokens }, (err, user) => {
+            if (err) {
+              apiLogger.error(formatApiLogMessage(`Failed to remove rememberMe token for user '${user.userName}': ${err}`, req));
+            }
+          });
+        }
+        else {
+          apiLogger.error(formatApiLogMessage(`Could not find rememberMe token for user '${user.userName}' when logging out`, req));
+        }
+      }
+    });
+  }
 
-module.exports = { routes, setRedisClient };
+  return sendLogoutResponse(req, res, CONSTANTS.HTTP_STATUS_CODES.OK, { message: CONSTANTS.RESPONSE_MESSAGES.LOGOUT_SUCCESS });
+}
+
+function sendLogoutResponse(req, res, responseCode, messageBody) {
+  req.session.destroy(function(err) {
+    if(err) {
+      apiLogger.error(formatApiLogMessage(`Error removing user session on logout: ${err}`, req));
+    }
+  });
+
+  if(req.signedCookies[REMEMBER_ME_COOKIE_NAME]) {
+    res.cookie(REMEMBER_ME_COOKIE_NAME, null, { expires: new Date(), httpOnly: true, signed: true, domain: config.get('cookieDomain') });
+  }
+
+  apiLogger.info(formatApiLogMessage(`User ${res.locals.userName} has logged out successfully.`));
+  return res.status(responseCode).json(messageBody);
+}
+
+let unauthenticatedRoutes = router();
+unauthenticatedRoutes.post('', authenticate);
+unauthenticatedRoutes.get('', getNewSessionForRememberedUser);
+
+let logoutRoute = router();
+logoutRoute.post('', logout);
+
+module.exports = { unauthenticatedRoutes, logoutRoute, setRedisClient, sendLogoutResponse, generateAuthTokens };

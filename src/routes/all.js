@@ -9,7 +9,7 @@ const creditCards = require('./creditCards');
 let routes = router();
 
 // non authenticated routes
-routes.use('/authenticate', authentication.routes);
+routes.use('/authenticate', authentication.unauthenticatedRoutes);
 routes.use('/log', frontEndLogRoutes);
 routes.use('/users', users.userUnauthenticatedRoutes);
 
@@ -17,6 +17,7 @@ routes.use('/users', users.userUnauthenticatedRoutes);
 routes.use(guards.authenticationGuard);
 routes.use('/users', users.userAuthenticatedRoutes);
 routes.use('/credit-cards', creditCards.creditCardAuthenticatedRoutes);
+routes.use('/logout', authentication.logoutRoute);
 
 // admin routes
 routes.use(guards.adminGuard);

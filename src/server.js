@@ -2,14 +2,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const addRequestId = require('express-request-id')();
 const config = require('config');
-const cookieSession = require('cookie-session');
+const expressSession = require('express-session');
 const srs = require('secure-random-string');
 const cookieParser = require('cookie-parser');
 const routes = require('./routes/all');
 const apiLogger = require('./logging').apiLogger;
 
 process.env.TOKEN_SECRET = srs();
-process.env.COOKIE_TOKEN_SECRET = srs();
 
 // configure and start express server
 let app = express();
@@ -20,14 +19,20 @@ app.use(addRequestId);
   Keeping the cookie secret static here instead of dynamically generating new secret with srs()
   so that tokens will continue to work if API is restarted within expiration period
 */
-app.use(cookieParser(config.get('rememberMe.cookieSecret')));
+const cookieSecret = config.get('cookieSecret');
+app.use(cookieParser(cookieSecret));
 // TODO: set 'secure: true' cookie option once SSL is implemented
-app.use(cookieSession({
+app.use(expressSession({
+  cookie: {
+    maxAge: config.get('session.expirationMinutes') * 60 * 1000,
+    domain: config.get('cookieDomain'),
+    httpOnly: true
+  },
   name: config.get('session.cookieName'),
-  secret: srs(),
-  maxAge: config.get('session.expirationMinutes') * 60 * 1000,
-  domain: config.get('cookieDomain'),
-  httpOnly: true
+  resave: true,
+  rolling: true,
+  saveUninitialized: false,
+  secret: cookieSecret
 }));
 app.use('/', routes);
 
