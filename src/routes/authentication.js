@@ -49,10 +49,10 @@ function authenticate(req, res) {
               let promise = new Promise(function(resolve, reject) {
                 setNewRememberMeToken(user, req, res, resolve);
               });
-              promise.then((result) => { sendLoginSuccessResponse(user, res, tokens.sessionToken); });
+              promise.then((result) => { processLoginSuccess(user, res, tokens.sessionToken); });
             }
             else {
-              sendLoginSuccessResponse(user, res, tokens.sessionToken);
+              processLoginSuccess(user, res, tokens.sessionToken);
             }
           }
           else {
@@ -93,57 +93,56 @@ function authenticate(req, res) {
   }
 }
 
-// TODO: refactor to be internal method and include rememberMe flag in tokens
-function getNewSessionForRememberedUser(req, res) {
-  const rememberMeToken = req.signedCookies[REMEMBER_ME_COOKIE_NAME];
-  if (rememberMeToken) {
-    User.findOne({ tokens : { $elemMatch : { _id : rememberMeToken, expiration : { $gt : new Date() } } } },'-email -lastName', (err, user) => {
-      if (err) {
-        apiLogger.error(formatApiLogMessage(`Error finding user by rememberMe token '${rememberMeToken}': ${err}`, req));
-        return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
-      }
+function getNewSessionForRememberedUser(token, req, res, next) {
+  User.findOne({ tokens : { $elemMatch : { _id : token, expiration : { $gt : new Date() } } } },'-email -lastName', (err, user) => {
+    if (err) {
+      apiLogger.error(formatApiLogMessage(`Error finding user by rememberMe token '${token}': ${err}`, req));
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
+    }
 
-      if (user) {
-        // check if user account is locked
-        if(user.lockoutExpiration > new Date()) {
-          apiLogger.info(formatApiLogMessage(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
-          return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({
-            message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_FAILURE,
-            errors: [ CONSTANTS.ERRORS.USER_LOCKED_OUT ]
-          });
-        }
-        else {
-          // generate new session for user
-          let tokens = generateAuthTokens(user);
-          req.session.token = tokens.cookieToken;
-          apiLogger.info(formatApiLogMessage(`User '${user.userName}' has logged in successfully using rememberMe token ${rememberMeToken}`, req));
-
-          // remove current rememberMe token and generate new one with updated expiration date
-          let currentTokenIndex = null;
-          user.tokens.some((value, index) => {
-            if(value._id === rememberMeToken) {
-              currentTokenIndex = index;
-              return true;
-            }
-            return false;
-          });
-          user.tokens.splice(currentTokenIndex, 1);
-          let promise = new Promise(function(resolve, reject) {
-            setNewRememberMeToken(user, req, res, resolve);
-          });
-          promise.then((result) => { sendLoginSuccessResponse(user, res, tokens.sessionToken); });
-        }
+    if (user) {
+      // check if user account is locked
+      if(user.lockoutExpiration > new Date()) {
+        apiLogger.info(formatApiLogMessage(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
+        return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({
+          message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_FAILURE,
+          errors: [ CONSTANTS.ERRORS.USER_LOCKED_OUT ]
+        });
       }
       else {
-        apiLogger.info(formatApiLogMessage(`Could not find user with rememberMe token '${rememberMeToken}'`, req));
-        return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS });
+        // generate new session for user
+        let tokens = generateAuthTokens(user);
+        req.session.token = tokens.cookieToken;
+
+        // set local variables on response object used by downstream routes
+        // since these were not set previously by the authentication guard
+        res.locals.role = user.role;
+        res.locals.groupId = user.groupId;
+        res.locals.userName = user.userName;
+
+        apiLogger.info(formatApiLogMessage(`User '${user.userName}' has logged in successfully using rememberMe token ${token}`, req));
+
+        // remove current rememberMe token and generate new one with updated expiration date
+        let currentTokenIndex = null;
+        user.tokens.some((value, index) => {
+          if(value._id === token) {
+            currentTokenIndex = index;
+            return true;
+          }
+          return false;
+        });
+        user.tokens.splice(currentTokenIndex, 1);
+        let promise = new Promise(function(resolve, reject) {
+          setNewRememberMeToken(user, req, res, resolve);
+        });
+        promise.then((result) => { processLoginSuccess(user, res, tokens.sessionToken, next); });
       }
-    });
-  }
-  else {
-    apiLogger.info(formatApiLogMessage(`No rememberMe token provided.`, req));
-    return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS });
-  }
+    }
+    else {
+      apiLogger.info(formatApiLogMessage(`Could not find user with rememberMe token '${token}'`, req));
+      return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS });
+    }
+  });
 }
 
 function generateAuthTokens(user) {
@@ -182,18 +181,24 @@ function setNewRememberMeToken(user, req, res, resolve) {
   });
 }
 
-function sendLoginSuccessResponse(user, res, token) {
+function processLoginSuccess(user, res, token, action) {
   // We do not want to send password, tokens, lockout expiration date, or mongo document version back in response
   user.password = undefined;
   user.tokens = undefined;
   user.__v = undefined;
   user.lockoutExpiration = undefined;
 
-  return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
-    message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_SUCCESS,
-    user : user,
-    token : token
-  });
+  res.locals.user = user;
+  res.locals.token = token;
+
+  if(action) {
+    action();
+  }
+  else {
+    return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
+      message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_SUCCESS
+    });
+  }
 }
 
 function logout(req, res){
@@ -238,11 +243,11 @@ function sendLogoutResponse(req, res, responseCode, messageBody) {
   return res.status(responseCode).json(messageBody);
 }
 
-let unauthenticatedRoutes = router();
-unauthenticatedRoutes.post('', authenticate);
-unauthenticatedRoutes.get('', getNewSessionForRememberedUser);
+let authenticateRoute = router();
+authenticateRoute.post('', authenticate);
 
 let logoutRoute = router();
 logoutRoute.post('', logout);
 
-module.exports = { unauthenticatedRoutes, logoutRoute, setRedisClient, sendLogoutResponse, generateAuthTokens };
+module.exports = { authenticateRoute, logoutRoute, setRedisClient, sendLogoutResponse,
+  generateAuthTokens, getNewSessionForRememberedUser };

@@ -6,16 +6,24 @@ const authentication = require('./authentication');
 
 const apiLogger = logging.apiLogger;
 const formatApiLogMessage = logging.formatApiLogMessage;
+const REMEMBER_ME_COOKIE_NAME = config.get('rememberMe.cookieName');
 
 function authenticationGuard(req, res, next) {
+  const rememberMeToken = req.signedCookies[REMEMBER_ME_COOKIE_NAME];
   let headerToken;
   try {
     headerToken = jwt.verify(req.headers[config.get('authenticationHeader')], process.env.TOKEN_SECRET);
   }
   catch (err) {
     apiLogger.info(formatApiLogMessage(`Invalid authentication token - error parsing header token: ${err}`, req));
-    return authentication.sendLogoutResponse(req, res, CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION,
-      { message: CONSTANTS.RESPONSE_MESSAGES.INVALID_AUTHENTICATION });
+    if(rememberMeToken) {
+      authentication.getNewSessionForRememberedUser(rememberMeToken, req, res, next);
+      return;
+    }
+    else {
+      return authentication.sendLogoutResponse(req, res, CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION,
+        { message: CONSTANTS.RESPONSE_MESSAGES.INVALID_AUTHENTICATION });
+    }
   }
 
   if(req.session.token && headerToken.userName === req.session.token.userName
@@ -28,8 +36,14 @@ function authenticationGuard(req, res, next) {
   }
   else {
     apiLogger.info(formatApiLogMessage(`Invalid authentication tokens - content does not match. HeaderToken: ${headerToken}, CookieToken: ${req.session.token}`, req));
-    return authentication.sendLogoutResponse(req, res, CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION,
-      { message: CONSTANTS.RESPONSE_MESSAGES.INVALID_AUTHENTICATION });
+    if(rememberMeToken) {
+      authentication.getNewSessionForRememberedUser(rememberMeToken, req, res, next);
+      return;
+    }
+    else {
+      return authentication.sendLogoutResponse(req, res, CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION,
+        { message: CONSTANTS.RESPONSE_MESSAGES.INVALID_AUTHENTICATION });
+    }
   }
 }
 
@@ -43,4 +57,13 @@ function adminGuard(req, res, next) {
   }
 }
 
-module.exports = { authenticationGuard, adminGuard };
+function sessionInjector(body, req, res) {
+  if(res.locals.token) {
+    body.sessionToken = res.locals.token;
+    body.sessionUser = res.locals.user;
+  }
+
+  return body;
+}
+
+module.exports = { authenticationGuard, adminGuard, sessionInjector };

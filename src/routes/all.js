@@ -1,4 +1,5 @@
 const router = require('express').Router;
+const mung = require('express-mung');
 const users = require('./users');
 const authentication = require('./authentication');
 const guards = require('./guards');
@@ -7,9 +8,10 @@ const groupRoutes = require('./groups');
 const creditCards = require('./creditCards');
 
 let routes = router();
+routes.use(mung.json(guards.sessionInjector));
 
 // non authenticated routes
-routes.use('/authenticate', authentication.unauthenticatedRoutes);
+routes.use('/authenticate', authentication.authenticateRoute);
 routes.use('/log', frontEndLogRoutes);
 routes.use('/users', users.userUnauthenticatedRoutes);
 

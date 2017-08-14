@@ -28,6 +28,7 @@
     "config": "^1.26.2",
     "cookie-parser": "^1.4.3",
     "express": "^4.15.4",
+    "express-mung": "^0.4.6",
     "express-request-id": "^1.4.0",
     "express-session": "^1.15.5",
     "jsonwebtoken": "^7.4.2",
