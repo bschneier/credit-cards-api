@@ -239,7 +239,7 @@ function sendLogoutResponse(req, res, responseCode, messageBody) {
     res.cookie(REMEMBER_ME_COOKIE_NAME, null, { expires: new Date(), httpOnly: true, signed: true, domain: config.get('cookieDomain') });
   }
 
-  apiLogger.info(formatApiLogMessage(`User ${res.locals.userName} has logged out successfully.`));
+  apiLogger.info(formatApiLogMessage(`User ${res.locals.userName} has logged out successfully.`, req));
   return res.status(responseCode).json(messageBody);
 }
 
