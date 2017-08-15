@@ -32,7 +32,7 @@ function login(server, role, requestMethod, callback) {
       return value.split('; ')[0];
     });
     return requestMethod(agent)
-      .set(config.get('authenticationHeader'), res.body.token)
+      .set(config.get('authenticationHeader'), res.body.sessionToken)
       .set('Cookie', cookies.join(';'))
       .end(callback);
   });

@@ -19,3 +19,8 @@ describe('AuthenticationGuard', () => {
 describe('AdminGuard', () => {
 
 });
+
+// TODO: implement this test
+describe('Session Injector', () => {
+
+});
