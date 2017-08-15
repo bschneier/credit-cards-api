@@ -1,0 +1,11 @@
+{
+  "exclude": [
+    "src/constants.js",
+    "src/initializeApi.js",
+    "src/logging.js",
+    "src/models/*.js",
+    "src/server.js",
+    "test/**/*.js"
+  ],
+  "all": true
+}
