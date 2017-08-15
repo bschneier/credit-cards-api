@@ -18,7 +18,7 @@ chai.use(sinonChai);
 
 const password = 'testPassword';
 let request;
-const userName = utils.data.userName;
+const username = utils.data.username;
 const firstName = utils.data.firstName;
 const role = 'user';
 const groupId = 1;
@@ -45,7 +45,7 @@ describe('POST /authenticate', () => {
     });
 
     it('should have password', (done) => {
-      request = { userName: 'testUsername' };
+      request = { username: 'testUsername' };
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
         invalidRequestAssertions(res);
         done();
@@ -55,7 +55,7 @@ describe('POST /authenticate', () => {
 
   describe('For valid credentials', () => {
     runSuccessfulLoginTests(false, () => {});
-    // runSuccessfulLoginTests(true, rememberMeTests);
+    runSuccessfulLoginTests(true, rememberMeTests);
   });
 
   // TODO: implement this test
@@ -84,7 +84,7 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
 
     it('Should return correct user data in body', (done) => {
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
-        res.body.sessionUser.userName.should.equal(userName);
+        res.body.sessionUser.username.should.equal(username);
         res.body.sessionUser._id.should.equal(userId);
         res.body.sessionUser.groupId.should.equal(groupId);
         res.body.sessionUser.firstName.should.equal(firstName);
@@ -117,7 +117,7 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
         const cookieDate = Date.parse(testUtils.cookieHelpers.getAttribute(sessionCookie, 'expires'));
         ((cookieDate - resDate) / 1000).should.be.closeTo(expectedExpirationPeriod * 60, 1);
         // validate that cookie value is not stored in plain text
-        testUtils.cookieHelpers.valueDoesNotContainString(sessionCookie, 'userName').should.equal(true);
+        testUtils.cookieHelpers.valueDoesNotContainString(sessionCookie, 'username').should.equal(true);
         done();
       });
     });
@@ -126,7 +126,7 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
         const headerToken = jwt.verify(res.body.sessionToken, process.env.TOKEN_SECRET);
         (headerToken.exp - headerToken.iat).should.equal(24*60*60);
-        headerToken.userName.should.equal(userName);
+        headerToken.username.should.equal(username);
         headerToken.role.should.equal(role);
         headerToken.groupId.should.equal(groupId);
         done();
@@ -146,10 +146,10 @@ function rememberMeTests() {
   beforeEach(() => {
     const currentDate = new Date();
     clock = sinon.useFakeTimers(currentDate.getTime());
-    expectedExpiration = new Date(new Date().getTime() +
+    expectedExpiration = new Date(currentDate.getTime() +
         (rememberMeExpirationPeriod*24*60*60*1000));
     userAfterTokenUpdate = {
-      userName: utils.data.userName,
+      username: utils.data.username,
       tokens: [ getNewToken() ]
     };
     sinon.stub(User, 'findByIdAndUpdate');
@@ -209,7 +209,7 @@ function successfulLoginSetup(rememberMe) {
 
   testUser = {
     _id: userId,
-    userName: userName,
+    username: username,
     password: bcrypt.hashSync(password, bcrypt.genSaltSync(10)),
     firstName: firstName,
     role: role,
@@ -217,7 +217,7 @@ function successfulLoginSetup(rememberMe) {
     lockoutExpiration: new Date().getTime() - (24*60*60*1000)
   };
   User.findOne.yields(null, testUser);
-  request = { userName: userName, password: password };
+  request = { username: username, password: password };
   if(rememberMe) {
     request.rememberMe = true;
   }

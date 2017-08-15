@@ -32,7 +32,6 @@
     "express-request-id": "^1.4.0",
     "express-session": "^1.15.5",
     "jsonwebtoken": "^7.4.2",
-    "moment": "^2.18.1",
     "mongoose": "^4.11.6",
     "redis": "^2.8.0",
     "secure-random-string": "^1.0.0",

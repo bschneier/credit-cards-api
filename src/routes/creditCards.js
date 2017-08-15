@@ -34,7 +34,7 @@ function getCreditCardById(req, res) {
         return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS, creditCard: creditCard});
       }
       else {
-        apiLogger.info(formatApiLogMessage(`Unauthorized request - get credit card info for ${req.params.id} made by user ${res.locals.userName}`, req));
+        apiLogger.info(formatApiLogMessage(`Unauthorized request - get credit card info for ${req.params.id} made by user ${res.locals.username}`, req));
         return res.status(CONSTANTS.HTTP_STATUS_CODES.NOT_AUTHORIZED).send({ message: CONSTANTS.RESPONSE_MESSAGES.NOT_AUTHORIZED });
       }
     }
@@ -70,7 +70,7 @@ function updateCreditCard(req, res) {
         });
       }
       else {
-        apiLogger.info(formatApiLogMessage(`Unauthorized request - update credit card info for ${req.params.id} made by user ${res.locals.userName}`, req));
+        apiLogger.info(formatApiLogMessage(`Unauthorized request - update credit card info for ${req.params.id} made by user ${res.locals.username}`, req));
         return res.status(CONSTANTS.HTTP_STATUS_CODES.NOT_AUTHORIZED).send({ message: CONSTANTS.RESPONSE_MESSAGES.NOT_AUTHORIZED });
       }
     }
@@ -114,7 +114,7 @@ function deleteCreditCard(req, res) {
       if (creditCard) {
         // regular users can only delete cards in their group
         if(creditCard.groupId.toString() !== res.locals.groupId) {
-          apiLogger.info(formatApiLogMessage(`Unauthorized request - delete credit card info for ${req.params.id} made by user ${res.locals.userName}`, req));
+          apiLogger.info(formatApiLogMessage(`Unauthorized request - delete credit card info for ${req.params.id} made by user ${res.locals.username}`, req));
           return res.status(CONSTANTS.HTTP_STATUS_CODES.NOT_AUTHORIZED).send({ message: CONSTANTS.RESPONSE_MESSAGES.NOT_AUTHORIZED });
         }
         else {

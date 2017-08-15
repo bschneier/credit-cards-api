@@ -1,7 +1,6 @@
 const router = require('express').Router;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const moment = require('moment');
 const config = require('config');
 const User = require('../models/users');
 const logging = require('../logging');
@@ -18,21 +17,21 @@ function setRedisClient(client) {
 
 function authenticate(req, res) {
   // validate request for expected parameters
-  if(!req.body.hasOwnProperty('userName') || !req.body.hasOwnProperty('password')) {
+  if(!req.body.hasOwnProperty('username') || !req.body.hasOwnProperty('password')) {
     apiLogger.info(formatApiLogMessage('invalid authentication request: ' + JSON.stringify(req.body), req));
     return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_REQUEST).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_REQUEST });
   }
   else {
-    User.findOne({ userName : req.body.userName }, '-email -lastName', (err, user) => {
+    User.findOne({ username : req.body.username }, '-email -lastName', (err, user) => {
       if (err) {
-        apiLogger.error(formatApiLogMessage(`Authentication request failed - error finding user '${req.body.userName}': ${err}`, req));
+        apiLogger.error(formatApiLogMessage(`Authentication request failed - error finding user '${req.body.username}': ${err}`, req));
         return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
       }
 
       if (user) {
         // check if user account is locked
         if(user.lockoutExpiration > new Date()) {
-          apiLogger.info(formatApiLogMessage(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
+          apiLogger.info(formatApiLogMessage(`Account for user ${user.username} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
           return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({
             message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_FAILURE,
             errors: [ CONSTANTS.ERRORS.USER_LOCKED_OUT ]
@@ -43,7 +42,7 @@ function authenticate(req, res) {
           if(bcrypt.compareSync(req.body.password, user.password)) {
             let tokens = generateAuthTokens(user);
             req.session.token = tokens.cookieToken;
-            apiLogger.info(formatApiLogMessage(`User '${user.userName}' has logged in successfully`, req));
+            apiLogger.info(formatApiLogMessage(`User '${user.username}' has logged in successfully`, req));
 
             if(req.body.rememberMe) {
               let promise = new Promise(function(resolve, reject) {
@@ -56,19 +55,19 @@ function authenticate(req, res) {
             }
           }
           else {
-            apiLogger.info(formatApiLogMessage(`Incorrect password for user '${user.userName}'`, req));
+            apiLogger.info(formatApiLogMessage(`Incorrect password for user '${user.username}'`, req));
 
             // increment login failures in cache and lock user account if necessary
             redisClient.get('login-failures:' + user._id, (error, failures) => {
               if(failures === '4') {
-                let expiration = moment().add(1, 'd').toDate();
+                let expiration = new Date(new Date().getTime() + (24*60*60*1000));
                 user.lockoutExpiration = expiration;
                 user.save((err) => {
                   if(err) {
-                    apiLogger.error(formatApiLogMessage(`Error setting lockoutExpiration for user '${user.userName}': ${err}`, req));
+                    apiLogger.error(formatApiLogMessage(`Error setting lockoutExpiration for user '${user.username}': ${err}`, req));
                   }
                   else {
-                    apiLogger.info(formatApiLogMessage(`Set lockoutExpiration for user ${user.userName} to ${expiration}`, req));
+                    apiLogger.info(formatApiLogMessage(`Set lockoutExpiration for user ${user.username} to ${expiration}`, req));
                   }
                 });
 
@@ -86,7 +85,7 @@ function authenticate(req, res) {
         }
       }
       else {
-        apiLogger.info(formatApiLogMessage(`Login failed - could not find user '${req.body.userName}'`, req));
+        apiLogger.info(formatApiLogMessage(`Login failed - could not find user '${req.body.username}'`, req));
         return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({ message: CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS });
       }
     });
@@ -103,7 +102,7 @@ function getNewSessionForRememberedUser(token, req, res, next) {
     if (user) {
       // check if user account is locked
       if(user.lockoutExpiration > new Date()) {
-        apiLogger.info(formatApiLogMessage(`Account for user ${user.userName} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
+        apiLogger.info(formatApiLogMessage(`Account for user ${user.username} is locked out. Lockout expiration is ${user.lockoutExpiration}.`, req));
         return res.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION).json({
           message: CONSTANTS.RESPONSE_MESSAGES.LOGIN_FAILURE,
           errors: [ CONSTANTS.ERRORS.USER_LOCKED_OUT ]
@@ -118,9 +117,9 @@ function getNewSessionForRememberedUser(token, req, res, next) {
         // since these were not set previously by the authentication guard
         res.locals.role = user.role;
         res.locals.groupId = user.groupId;
-        res.locals.userName = user.userName;
+        res.locals.username = user.username;
 
-        apiLogger.info(formatApiLogMessage(`User '${user.userName}' has logged in successfully using rememberMe token ${token}`, req));
+        apiLogger.info(formatApiLogMessage(`User '${user.username}' has logged in successfully using rememberMe token ${token}`, req));
 
         // remove current rememberMe token and generate new one with updated expiration date
         let currentTokenIndex = null;
@@ -147,15 +146,15 @@ function getNewSessionForRememberedUser(token, req, res, next) {
 
 function generateAuthTokens(user) {
   // keep jwt header tokens valid for 24 hours and rely on express session to expire cookie token with rolling window
-  const sessionToken = jwt.sign({ userName: user.userName, role: user.role, groupId: user.groupId }, process.env.TOKEN_SECRET, {
+  const sessionToken = jwt.sign({ username: user.username, role: user.role, groupId: user.groupId }, process.env.TOKEN_SECRET, {
     expiresIn: 60 * 60 * 24
   });
-  const cookieToken = { userName: user.userName, role: user.role, groupId: user.groupId };
+  const cookieToken = { username: user.username, role: user.role, groupId: user.groupId };
   return { sessionToken: sessionToken, cookieToken: cookieToken };
 }
 
 function setNewRememberMeToken(user, req, res, resolve) {
-  let expiration = moment().add(config.get('rememberMe.expirationDays'), 'd').toDate();
+  let expiration = new Date(new Date().getTime() + (config.get('rememberMe.expirationDays')*24*60*60*1000));
   let newToken = { expiration: expiration };
   if(user.tokens) {
     user.tokens.push(newToken);
@@ -166,7 +165,7 @@ function setNewRememberMeToken(user, req, res, resolve) {
 
   User.findByIdAndUpdate(user._id, { tokens: user.tokens }, { new: true }, (err, user) => {
     if (err) {
-      apiLogger.error(formatApiLogMessage(`Failed to add rememberMe token for user '${user.userName}': ${err}`, req));
+      apiLogger.error(formatApiLogMessage(`Failed to add rememberMe token for user '${user.username}': ${err}`, req));
     }
     else {
       let newToken = user.tokens.find((token) => {
@@ -174,7 +173,7 @@ function setNewRememberMeToken(user, req, res, resolve) {
       });
       // TODO: set secure attribute on this cookie once SSL implemented
       res.cookie(REMEMBER_ME_COOKIE_NAME, newToken._id, { expires: expiration, httpOnly: true, signed: true, domain: config.get('cookieDomain') });
-      apiLogger.info(formatApiLogMessage(`Set new rememberMe token for user '${user.userName}'.`, req));
+      apiLogger.info(formatApiLogMessage(`Set new rememberMe token for user '${user.username}'.`, req));
     }
 
     resolve();
@@ -204,9 +203,9 @@ function processLoginSuccess(user, res, token, action) {
 function logout(req, res){
   const rememberMeToken = req.signedCookies[REMEMBER_ME_COOKIE_NAME];
   if(rememberMeToken) {
-    User.findOne({ userName : res.locals.userName },'userName tokens', (err, user) => {
+    User.findOne({ username : res.locals.username },'username tokens', (err, user) => {
       if (err) {
-        apiLogger.error(formatApiLogMessage(`Error finding user '${res.locals.userName}': ${err}`, req));
+        apiLogger.error(formatApiLogMessage(`Error finding user '${res.locals.username}': ${err}`, req));
       }
       else if (user) {
         const tokenIndex = user.tokens.indexOf(rememberMeToken);
@@ -214,12 +213,12 @@ function logout(req, res){
           user.tokens.splice(tokenIndex, 1);
           User.findByIdAndUpdate(user._id, { tokens: user.tokens }, (err, user) => {
             if (err) {
-              apiLogger.error(formatApiLogMessage(`Failed to remove rememberMe token for user '${user.userName}': ${err}`, req));
+              apiLogger.error(formatApiLogMessage(`Failed to remove rememberMe token for user '${user.username}': ${err}`, req));
             }
           });
         }
         else {
-          apiLogger.error(formatApiLogMessage(`Could not find rememberMe token for user '${user.userName}' when logging out`, req));
+          apiLogger.error(formatApiLogMessage(`Could not find rememberMe token for user '${user.username}' when logging out`, req));
         }
       }
     });
@@ -239,7 +238,7 @@ function sendLogoutResponse(req, res, responseCode, messageBody) {
     res.cookie(REMEMBER_ME_COOKIE_NAME, null, { expires: new Date(), httpOnly: true, signed: true, domain: config.get('cookieDomain') });
   }
 
-  apiLogger.info(formatApiLogMessage(`User ${res.locals.userName} has logged out successfully.`, req));
+  apiLogger.info(formatApiLogMessage(`User ${res.locals.username} has logged out successfully.`, req));
   return res.status(responseCode).json(messageBody);
 }
 

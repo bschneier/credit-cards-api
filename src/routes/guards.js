@@ -26,11 +26,11 @@ function authenticationGuard(req, res, next) {
     }
   }
 
-  if(req.session.token && headerToken.userName === req.session.token.userName
+  if(req.session.token && headerToken.username === req.session.token.username
     && headerToken.role === req.session.token.role && headerToken.groupId === req.session.token.groupId) {
       res.locals.role = headerToken.role;
       res.locals.groupId = headerToken.groupId;
-      res.locals.userName = headerToken.userName;
+      res.locals.username = headerToken.username;
 
       next();
   }

@@ -15,15 +15,15 @@ chai.use(chaiHttp);
   callback function to be called when the api returns its response.
 */
 function login(server, role, requestMethod, callback) {
-  const userName = 'testUser';
+  const username = 'testUser';
   const groupId = 1;
   const password = "testPassword";
 
-  let testUser = { userName: userName, password: bcrypt.hashSync(password, bcrypt.genSaltSync(10)), role: role, groupId: groupId };
+  let testUser = { username: username, password: bcrypt.hashSync(password, bcrypt.genSaltSync(10)), role: role, groupId: groupId };
   sinon.stub(User, 'findOne');
   User.findOne.yields(null, testUser);
 
-  let request = { userName: userName, password: password, rememberMe: false };
+  let request = { username: username, password: password, rememberMe: false };
 
   let agent = chai.request.agent(server);
   agent.post('/authenticate').send(request).end((err, res) => {
@@ -78,7 +78,7 @@ const cookieHelpers = {
 };
 
 const data = {
-  userName: 'testUser',
+  username: 'testUser',
   firstName: 'test',
   lastName: 'user',
   email: 'test@user.com',

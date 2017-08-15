@@ -40,18 +40,18 @@ function createUserByRegistrationCode(req, res) {
 
 // get user profile data for user
 function getAuthenticatedUser(req, res) {
-  User.findOne({userName: res.locals.userName}, 'firstName lastName userName email', (err, user) => {
+  User.findOne({username: res.locals.username}, 'firstName lastName username email', (err, user) => {
     if (err) {
-      apiLogger.error(formatApiLogMessage(`Error finding user '${res.locals.userName}': ${err}`, req));
+      apiLogger.error(formatApiLogMessage(`Error finding user '${res.locals.username}': ${err}`, req));
       return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     if (user) {
-      apiLogger.info(formatApiLogMessage(`user ${res.locals.userName} found successfully`, req));
+      apiLogger.info(formatApiLogMessage(`user ${res.locals.username} found successfully`, req));
       return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({ message: CONSTANTS.RESPONSE_MESSAGES.SUCCESS, user: user});
     }
     else {
-      apiLogger.info(formatApiLogMessage(`Could not find user '${res.locals.userName}'`, req));
+      apiLogger.info(formatApiLogMessage(`Could not find user '${res.locals.username}'`, req));
       return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
         message: CONSTANTS.RESPONSE_MESSAGES.DATA_NOT_FOUND,
         errors: [ CONSTANTS.ERRORS.DATA_NOT_FOUND ]
@@ -66,16 +66,16 @@ function updateAuthenticatedUser(req, res) {
     find user by username provided in auth token, so that regular
     users can only update their own data
   */
-  User.findOne({userName: res.locals.userName}, (err, user) => {
+  User.findOne({username: res.locals.username}, (err, user) => {
     if (err) {
-      apiLogger.error(formatApiLogMessage(`Error finding user '${res.locals.userName}': ${err}`, req));
+      apiLogger.error(formatApiLogMessage(`Error finding user '${res.locals.username}': ${err}`, req));
       return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
     }
 
     if (user) {
       if(req.body.password) {
         if(!bcrypt.compareSync(req.body.currentPassword, user.password)) {
-          apiLogger.info(formatApiLogMessage(`Invalid current password provided for password update for ${res.locals.userName}`, req));
+          apiLogger.info(formatApiLogMessage(`Invalid current password provided for password update for ${res.locals.username}`, req));
           return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
         message: CONSTANTS.RESPONSE_MESSAGES.INVALID_PASSWORD,
         errors: [ CONSTANTS.ERRORS.INVALID_PASSWORD ]

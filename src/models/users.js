@@ -5,7 +5,7 @@ let mongoose = require('mongoose');
 mongoose.Promise = Promise;
 
 var userSchema = mongoose.Schema({ // eslint-disable-line new-cap
-  userName: String,
+  username: String,
   firstName: String,
   lastName: String,
   groupId: mongoose.Schema.Types.ObjectId,

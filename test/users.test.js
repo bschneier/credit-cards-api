@@ -14,7 +14,7 @@ chai.use(sinonChai);
 function setUpMockUser() {
   sinon.stub(User, 'findOne');
   let testUser = {
-    userName: utils.data.userName,
+    username: utils.data.username,
     firstName: utils.data.firstName,
     lastName: utils.data.lastName,
     email: utils.data.email
@@ -45,7 +45,7 @@ describe('GET /profile', () => {
           setUpMockUser();
           return agent.get('/users/profile');
         }, (err, res) => {
-          res.body.user.userName.should.equal(utils.data.userName);
+          res.body.user.username.should.equal(utils.data.username);
           res.body.user.firstName.should.equal(utils.data.firstName);
           res.body.user.lastName.should.equal(utils.data.lastName);
           res.body.user.email.should.equal(utils.data.email);
