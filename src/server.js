@@ -22,6 +22,7 @@ app.use(addRequestId);
 const cookieSecret = config.get('cookieSecret');
 app.use(cookieParser(cookieSecret));
 // TODO: set 'secure: true' cookie option once SSL is implemented
+// expressSession must use same secret for cookie as cookieParser
 app.use(expressSession({
   cookie: {
     maxAge: config.get('session.expirationMinutes') * 60 * 1000,

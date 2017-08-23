@@ -182,7 +182,7 @@ function rememberMeTests() {
 
   beforeEach(() => {
     const currentDate = new Date();
-    clock = sinon.useFakeTimers(currentDate.getTime());
+    clock = sinon.useFakeTimers(currentDate);
     expectedExpiration = new Date(currentDate.getTime() +
         (rememberMeExpirationPeriod*24*60*60*1000));
     userAfterTokenUpdate = {

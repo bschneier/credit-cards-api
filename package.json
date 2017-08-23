@@ -32,22 +32,23 @@
     "express-request-id": "^1.4.0",
     "express-session": "^1.15.5",
     "jsonwebtoken": "^7.4.2",
-    "mongoose": "^4.11.6",
+    "mongoose": "^4.11.7",
     "redis": "^2.8.0",
     "secure-random-string": "^1.0.0",
     "winston": "^2.3.1",
     "winston-daily-rotate-file": "^1.4.6"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
+    "chai": "^4.1.1",
     "chai-http": "^3.0.0",
     "eslint": "^4.4.1",
     "eslint-config-airbnb-base": "^11.3.1",
     "eslint-plugin-import": "^2.7.0",
     "fakeredis": "^2.0.0",
     "mocha": "^3.5.0",
+    "nsp": "^2.7.0",
     "nyc": "^11.1.0",
-    "sinon": "^1.17.7",
+    "sinon": "^3.2.0",
     "sinon-chai": "^2.12.0"
   },
   "license": "MIT"
