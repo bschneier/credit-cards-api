@@ -60,6 +60,23 @@ describe('POST /authenticate', () => {
 
   // TODO: implement this test
   describe('For invalid credentials', () => {
+    beforeEach(() => {
+      sinon.stub(User, 'findOne');
+      User.findOne.yields(null, null);
+    });
+
+    afterEach(() => {
+      User.findOne.restore();
+    });
+
+    it('Should return error response code and message', (done) => {
+      chai.request(server).post('/authenticate').send(request).end((err, res) => {
+        res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION);
+        res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS);
+        chai.expect(res.body.sessionUser).to.be.undefined;
+        done();
+      });
+    });
 
     // TODO: test for locking users out
   });
@@ -69,7 +86,7 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
   const conditionalText = rememberMe ? '' : 'out';
   describe('With' + conditionalText + ' rememberMe flag', () => {
     beforeEach(() => {
-      successfulLoginSetup(rememberMe)
+      successfulLoginSetup(rememberMe);
     });
 
     afterEach(successfulLoginTeardown);
@@ -89,14 +106,34 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
         res.body.sessionUser.groupId.should.equal(groupId);
         res.body.sessionUser.firstName.should.equal(firstName);
         res.body.sessionUser.role.should.equal(role);
+
+        // validate that unneccesary data is not returned in response
         chai.expect(res.body.sessionUser.password).to.be.undefined;
         chai.expect(res.body.sessionUser.tokens).to.be.undefined;
         chai.expect(res.body.sessionUser.lockoutExpiration).to.be.undefined;
+        chai.expect(res.body.sessionUser.__v).to.be.undefined;
         done();
       });
     });
 
-    // TODO: test that locked out user cannot authenticate with valid credentials
+    it('Should not authenticate user who is locked out', (done) => {
+      const currentDate = new Date();
+      let clock = sinon.useFakeTimers(currentDate.getTime());
+      testUser = {
+        username: username,
+        lockoutExpiration: currentDate.getTime() + 1
+      };
+      User.findOne.yields(null, testUser);
+      chai.request(server).post('/authenticate').send(request).end((err, res) => {
+        res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION);
+        res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.LOGIN_FAILURE);
+        // TODO: assert that error array contains CONSTANTS.ERRORS.USER_LOCKED_OUT
+        // res.body.errors.should.have(CONSTANTS.ERRORS.USER_LOCKED_OUT);
+        chai.expect(res.body.sessionUser).to.be.undefined;
+        clock.restore();
+        done();
+      });
+    });
 
     it('Should call database to find user data', (done) => {
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
