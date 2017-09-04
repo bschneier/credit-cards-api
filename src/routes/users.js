@@ -40,7 +40,7 @@ function createUserByRegistrationCode(req, res) {
 
 // get user profile data for user
 function getAuthenticatedUser(req, res) {
-  User.findOne({username: res.locals.username}, 'firstName lastName username email', (err, user) => {
+  User.findOne({username: res.locals.username}, '-_id firstName lastName username email', (err, user) => {
     if (err) {
       apiLogger.error(formatApiLogMessage(`Error finding user '${res.locals.username}': ${err}`, req));
       return res.status(CONSTANTS.HTTP_STATUS_CODES.ERROR).json({ message: CONSTANTS.RESPONSE_MESSAGES.INTERNAL_ERROR_MESSAGE });
@@ -77,9 +77,9 @@ function updateAuthenticatedUser(req, res) {
         if(!bcrypt.compareSync(req.body.currentPassword, user.password)) {
           apiLogger.info(formatApiLogMessage(`Invalid current password provided for password update for ${res.locals.username}`, req));
           return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({
-        message: CONSTANTS.RESPONSE_MESSAGES.INVALID_PASSWORD,
-        errors: [ CONSTANTS.ERRORS.INVALID_PASSWORD ]
-      });
+            message: CONSTANTS.RESPONSE_MESSAGES.INVALID_PASSWORD,
+            errors: [ CONSTANTS.ERRORS.INVALID_PASSWORD ]
+          });
         }
         else {
           delete req.body.currentPassword;
