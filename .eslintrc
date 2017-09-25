@@ -2,9 +2,9 @@
   "root": true,
   "env": {
     "es6": true,
-    "node": true
+    "node": true,
+    "mocha": true
   },
-
   "parserOptions": {
     "ecmaVersion": 6,
     "sourceType": "module",
@@ -13,20 +13,11 @@
       "experimentalObjectRestSpread": true
     }
   },
-
-  "settings": {
-    "import/ignore": [
-      "node modules",
-      "\\.(json|css|jpg|png|gif|eot|svg|ttf|woff|woff2|mp4|webm)$"
-    ],
-    "import/extensions": [".js"],
-    "import/resolver": {
-      "node": {
-        "extensions": [".js", ".json"]
-      }
-    }
-  },
-
+  "plugins": [
+    "chai-expect",
+    "chai-friendly",
+    "mocha"
+  ],
   "rules": {
     // http://eslint.org/docs/rules/
     "array-callback-return": "warn",
@@ -102,7 +93,6 @@
     "no-undef": "warn",
     "no-unexpected-multiline": "warn",
     "no-unreachable": "warn",
-    "no-unused-expressions": "warn",
     "no-unused-labels": "warn",
     "no-unused-vars": ["warn", { "vars": "local", "args": "none" }],
     "no-use-before-define": ["warn", "nofunc"],
@@ -125,6 +115,16 @@
     "strict": ["warn", "never"],
     "unicode-bom": ["warn", "never"],
     "use-isnan": "warn",
-    "valid-typeof": "warn"
+    "valid-typeof": "warn",
+    "chai-expect/no-inner-compare": "warn",
+    "chai-expect/missing-assertion": "warn",
+    "chai-expect/terminating-properties": "warn",
+    "chai-friendly/no-unused-expressions": "warn",
+    "mocha/handle-done-callback": "warn",
+    "mocha/no-exclusive-tests": "warn",
+    "mocha/no-global-tests": "warn",
+    "mocha/no-identical-title": "warn",
+    "mocha/no-sibling-hooks": "warn",
+    "mocha/no-skipped-tests": "warn"
   }
 }

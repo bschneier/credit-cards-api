@@ -12,6 +12,7 @@ const utils = require('../testUtils');
 const CONSTANTS = require('../../src/constants');
 const testUtils = require('../testUtils');
 
+const expect = chai.expect;
 chai.should();
 chai.use(chaiHttp);
 chai.use(sinonChai);
@@ -73,7 +74,7 @@ describe('POST /authenticate', () => {
       chai.request(server).post('/authenticate').send(request).end((err, res) => {
         res.should.have.status(CONSTANTS.HTTP_STATUS_CODES.INVALID_AUTHENTICATION);
         res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.INVALID_CREDENTIALS);
-        chai.expect(res.body.sessionUser).to.be.undefined;
+        expect(res.body.sessionUser).to.be.undefined;
         done();
       });
     });
@@ -108,10 +109,10 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
         res.body.sessionUser.role.should.equal(role);
 
         // validate that unneccesary data is not returned in response
-        chai.expect(res.body.sessionUser.password).to.be.undefined;
-        chai.expect(res.body.sessionUser.tokens).to.be.undefined;
-        chai.expect(res.body.sessionUser.lockoutExpiration).to.be.undefined;
-        chai.expect(res.body.sessionUser.__v).to.be.undefined;
+        expect(res.body.sessionUser.password).to.be.undefined;
+        expect(res.body.sessionUser.tokens).to.be.undefined;
+        expect(res.body.sessionUser.lockoutExpiration).to.be.undefined;
+        expect(res.body.sessionUser.__v).to.be.undefined;
         done();
       });
     });
@@ -129,7 +130,7 @@ function runSuccessfulLoginTests(rememberMe, additionalTests) {
         res.body.message.should.equal(CONSTANTS.RESPONSE_MESSAGES.LOGIN_FAILURE);
         // TODO: assert that error array contains CONSTANTS.ERRORS.USER_LOCKED_OUT
         // res.body.errors.should.have(CONSTANTS.ERRORS.USER_LOCKED_OUT);
-        chai.expect(res.body.sessionUser).to.be.undefined;
+        expect(res.body.sessionUser).to.be.undefined;
         clock.restore();
         done();
       });

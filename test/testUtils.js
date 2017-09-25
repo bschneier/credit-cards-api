@@ -48,7 +48,7 @@ const cookieHelpers = {
       }
     }
 
-    console.log(`Could not find cookie named ${cookieName}`);
+    console.log(`Could not find cookie named ${cookieName}`); // eslint-disable-line no-console
     return null;
   },
 
@@ -62,7 +62,7 @@ const cookieHelpers = {
     }
 
     let cookieName = cookieValues[0].split('=')[0];
-    console.log(`Could not find ${attributeName} on cookie ${cookieName}`);
+    console.log(`Could not find ${attributeName} on cookie ${cookieName}`); // eslint-disable-line no-console
     return null;
   },
 
