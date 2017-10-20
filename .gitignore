@@ -10,7 +10,7 @@ logs
 *.log
 
 # config
-config
+config/*.json
 
 # ignore this file for now, may add to source control in the future
 package-lock.json
