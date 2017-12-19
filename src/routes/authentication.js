@@ -180,7 +180,7 @@ function setNewRememberMeToken(user, req, res, resolve) {
   });
 }
 
-function processLoginSuccess(user, res, token, action) {
+function processLoginSuccess(user, res, token, nextAction) {
   // We do not want to send password, tokens, lockout expiration date, or mongo document version back in response
   user.password = undefined;
   user.tokens = undefined;
@@ -190,8 +190,8 @@ function processLoginSuccess(user, res, token, action) {
   res.locals.user = user;
   res.locals.token = token;
 
-  if(action) {
-    action();
+  if(nextAction) {
+    nextAction();
   }
   else {
     return res.status(CONSTANTS.HTTP_STATUS_CODES.OK).json({

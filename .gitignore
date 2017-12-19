@@ -2,6 +2,9 @@
 coverage
 .nyc_output
 
+# TFS 2017 directory
+$tf
+
 # Dependency directory
 node_modules
 

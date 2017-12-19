@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const addRequestId = require('express-request-id')();
 const config = require('config');
 const expressSession = require('express-session');
+const compression = require('compression');
 const srs = require('secure-random-string');
 const cookieParser = require('cookie-parser');
 const routes = require('./routes/all');
@@ -10,11 +11,11 @@ const apiLogger = require('./logging').apiLogger;
 
 process.env.TOKEN_SECRET = srs();
 
-// configure and start express server
 let app = express();
 app.disable('x-powered-by');
 app.use(bodyParser.json());
 app.use(addRequestId);
+app.use(compression());
 /*
   Keeping the cookie secret static here instead of dynamically generating new secret with srs()
   so that tokens will continue to work if API is restarted within expiration period
