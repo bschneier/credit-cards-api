@@ -8,8 +8,8 @@ $tf
 # Dependency directory
 node_modules
 
-# logs directory
-logs
+# logs
+/logs/**/*.log.*
 *.log
 
 # config
